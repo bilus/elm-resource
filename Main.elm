@@ -6,6 +6,7 @@ import Element exposing (..)
 import Element.Background as Background
 import Html exposing (Html)
 import Html.Attributes exposing (style)
+import Iso8601
 import Time exposing (Posix)
 
 
@@ -18,7 +19,10 @@ type Msg
 
 
 type alias Model =
-    { currPage : Page, timetable : List Schedule }
+    { currPage : Page
+    , timetable : List Schedule
+    , timetableConfig : TimetableConfig
+    }
 
 
 type alias Flags =
@@ -50,6 +54,12 @@ type Schedule
     = Schedule Resource (List Reservation)
 
 
+type alias TimetableConfig =
+    { start : Posix
+    , duration : Duration
+    }
+
+
 sampleTimetable =
     [ Schedule
         (newResource (ResourceId "id1") "ZS 672AE")
@@ -62,7 +72,10 @@ sampleTimetable =
 
 init : Flags -> ( Model, Cmd Msg )
 init _ =
-    ( { currPage = InputPage, timetable = sampleTimetable }
+    ( { currPage = InputPage
+      , timetable = sampleTimetable
+      , timetableConfig = { start = Time.millisToPosix 1562533510000, duration = Duration.hours 24 }
+      }
     , Cmd.none
     )
 
@@ -95,13 +108,13 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "VisExp"
     , body =
-        [ layout [] <| viewTimetable model.timetable
+        [ layout [] <| viewTimetable model.timetableConfig model.timetable
         ]
     }
 
 
-viewTimetable : List Schedule -> Element Msg
-viewTimetable timetable =
+viewTimetable : TimetableConfig -> List Schedule -> Element Msg
+viewTimetable timetableConfig timetable =
     row [ height fill ]
         [ column [ width fill ]
             [ row [ height fill ]
@@ -109,9 +122,20 @@ viewTimetable timetable =
             , row
                 [ height fill, width fill ]
               <|
-                List.map viewSchedule timetable
+                viewOffsetCol
+                    :: List.map (viewScheduleCol timetableConfig) timetable
             ]
         ]
+
+
+viewOffsetCol : Element Msg
+viewOffsetCol =
+    let
+        offsetRows =
+            dayTimeOffsets
+                |> List.map (\offset -> row [ alignRight ] [ text <| formatOffset offset ])
+    in
+    column [ inFront <| stickyHeader "Czas" ] <| stickyHeader "Czas" :: offsetRows
 
 
 sticky : List (Attribute msg)
@@ -132,12 +156,91 @@ stickyHeader title =
         ]
 
 
-viewSchedule : Schedule -> Element Msg
-viewSchedule (Schedule (Resource { name }) _) =
+viewScheduleCol : TimetableConfig -> Schedule -> Element Msg
+viewScheduleCol timetableConfig (Schedule (Resource { name }) reservations) =
     column [ height fill, width fill, inFront <| stickyHeader name ] <|
         [ stickyHeader name -- Repeat to provide padding for stickyHeader ^
-        , row [] [ paragraph [] [ text "Aliquam erat volutpat.  Nunc eleifend leo vitae magna.  In id erat non orci commodo lobortis.  Proin neque massa, cursus ut, gravida ut, lobortis eget, lacus.  Sed diam.  Praesent fermentum tempor tellus.  Nullam tempus.  Mauris ac felis vel velit tristique imperdiet.  Donec at pede.  Etiam vel neque nec dui dignissim bibendum.  Vivamus id enim.  Phasellus neque orci, porta a, aliquet quis, semper a, massa.  Phasellus purus.  Pellentesque tristique imperdiet tortor.  Nam euismod tellus id erat.\n\nNullam eu ante vel est convallis dignissim.  Fusce suscipit, wisi nec facilisis facilisis, est dui fermentum leo, quis tempor ligula erat quis odio.  Nunc porta vulputate tellus.  Nunc rutrum turpis sed pede.  Sed bibendum.  Aliquam posuere.  Nunc aliquet, augue nec adipiscing interdum, lacus tellus malesuada massa, quis varius mi purus non odio.  Pellentesque condimentum, magna ut suscipit hendrerit, ipsum augue ornare nulla, non luctus diam neque sit amet urna.  Curabitur vulputate vestibulum lorem.  Fusce sagittis, libero non molestie mollis, magna orci ultrices dolor, at vulputate neque nulla lacinia eros.  Sed id ligula quis est convallis tempor.  Curabitur lacinia pulvinar nibh.  Nam a sapien.\n\n", text "Aliquam erat volutpat.  Nunc eleifend leo vitae magna.  In id erat non orci commodo lobortis.  Proin neque massa, cursus ut, gravida ut, lobortis eget, lacus.  Sed diam.  Praesent fermentum tempor tellus.  Nullam tempus.  Mauris ac felis vel velit tristique imperdiet.  Donec at pede.  Etiam vel neque nec dui dignissim bibendum.  Vivamus id enim.  Phasellus neque orci, porta a, aliquet quis, semper a, massa.  Phasellus purus.  Pellentesque tristique imperdiet tortor.  Nam euismod tellus id erat.\n\nNullam eu ante vel est convallis dignissim.  Fusce suscipit, wisi nec facilisis facilisis, est dui fermentum leo, quis tempor ligula erat quis odio.  Nunc porta vulputate tellus.  Nunc rutrum turpis sed pede.  Sed bibendum.  Aliquam posuere.  Nunc aliquet, augue nec adipiscing interdum, lacus tellus malesuada massa, quis varius mi purus non odio.  Pellentesque condimentum, magna ut suscipit hendrerit, ipsum augue ornare nulla, non luctus diam neque sit amet urna.  Curabitur vulputate vestibulum lorem.  Fusce sagittis, libero non molestie mollis, magna orci ultrices dolor, at vulputate neque nulla lacinia eros.  Sed id ligula quis est convallis tempor.  Curabitur lacinia pulvinar nibh.  Nam a sapien.\n\n", text "Aliquam erat volutpat.  Nunc eleifend leo vitae magna.  In id erat non orci commodo lobortis.  Proin neque massa, cursus ut, gravida ut, lobortis eget, lacus.  Sed diam.  Praesent fermentum tempor tellus.  Nullam tempus.  Mauris ac felis vel velit tristique imperdiet.  Donec at pede.  Etiam vel neque nec dui dignissim bibendum.  Vivamus id enim.  Phasellus neque orci, porta a, aliquet quis, semper a, massa.  Phasellus purus.  Pellentesque tristique imperdiet tortor.  Nam euismod tellus id erat.\n\nNullam eu ante vel est convallis dignissim.  Fusce suscipit, wisi nec facilisis facilisis, est dui fermentum leo, quis tempor ligula erat quis odio.  Nunc porta vulputate tellus.  Nunc rutrum turpis sed pede.  Sed bibendum.  Aliquam posuere.  Nunc aliquet, augue nec adipiscing interdum, lacus tellus malesuada massa, quis varius mi purus non odio.  Pellentesque condimentum, magna ut suscipit hendrerit, ipsum augue ornare nulla, non luctus diam neque sit amet urna.  Curabitur vulputate vestibulum lorem.  Fusce sagittis, libero non molestie mollis, magna orci ultrices dolor, at vulputate neque nulla lacinia eros.  Sed id ligula quis est convallis tempor.  Curabitur lacinia pulvinar nibh.  Nam a sapien.\n\n" ] ]
+        , row [] [ viewReservationCol timetableConfig reservations ]
         ]
+
+
+viewReservationCol : TimetableConfig -> List Reservation -> Element Msg
+viewReservationCol timetableConfig reservations =
+    let
+        timeslots =
+            timeslotsFrom timetableConfig reservations
+    in
+    column [] <|
+        List.map viewTimeslotRow timeslots
+
+
+type Timeslot
+    = EmptyTimeslot { offset : Duration }
+    | ReservedTimeslot { offset : Duration, reservations : List Reservation }
+
+
+timeslotFromReservation : Reservation -> Timeslot
+timeslotFromReservation reservation =
+    EmptyTimeslot { offset = Duration.minutes 0 }
+
+
+mergeTimeslots : List Timeslot -> List Timeslot -> List Timeslot
+mergeTimeslots xs ys =
+    xs
+
+
+dayTimeOffsets : List Duration
+dayTimeOffsets =
+    let
+        offsets =
+            List.range 0 47
+                |> List.map ((*) 30 >> toFloat)
+    in
+    offsets
+        |> List.map Duration.minutes
+
+
+timeslotsFrom : TimetableConfig -> List Reservation -> List Timeslot
+timeslotsFrom { start, duration } reservations =
+    let
+        empties =
+            dayTimeOffsets
+                |> List.map (\offset -> EmptyTimeslot { offset = offset })
+
+        reservies =
+            reservations
+                |> List.map timeslotFromReservation
+    in
+    mergeTimeslots empties reservies
+
+
+viewTimeslotRow : Timeslot -> Element Msg
+viewTimeslotRow timeslot =
+    case timeslot of
+        EmptyTimeslot { offset } ->
+            row [] []
+
+        ReservedTimeslot { offset } ->
+            row [] [ text <| formatOffset offset ]
+
+
+formatOffset : Duration -> String
+formatOffset offset =
+    let
+        hours =
+            Duration.inHours offset
+
+        fullHours =
+            floor hours
+
+        minutes =
+            60 * (hours - toFloat fullHours) |> round
+    in
+    String.fromInt fullHours ++ ":" ++ String.fromInt minutes
+
+
+loremParagraph =
+    paragraph [] [ text "Aliquam erat volutpat.  Nunc eleifend leo vitae magna.  In id erat non orci commodo lobortis.  Proin neque massa, cursus ut, gravida ut, lobortis eget, lacus.  Sed diam.  Praesent fermentum tempor tellus.  Nullam tempus.  Mauris ac felis vel velit tristique imperdiet.  Donec at pede.  Etiam vel neque nec dui dignissim bibendum.  Vivamus id enim.  Phasellus neque orci, porta a, aliquet quis, semper a, massa.  Phasellus purus.  Pellentesque tristique imperdiet tortor.  Nam euismod tellus id erat.\n\nNullam eu ante vel est convallis dignissim.  Fusce suscipit, wisi nec facilisis facilisis, est dui fermentum leo, quis tempor ligula erat quis odio.  Nunc porta vulputate tellus.  Nunc rutrum turpis sed pede.  Sed bibendum.  Aliquam posuere.  Nunc aliquet, augue nec adipiscing interdum, lacus tellus malesuada massa, quis varius mi purus non odio.  Pellentesque condimentum, magna ut suscipit hendrerit, ipsum augue ornare nulla, non luctus diam neque sit amet urna.  Curabitur vulputate vestibulum lorem.  Fusce sagittis, libero non molestie mollis, magna orci ultrices dolor, at vulputate neque nulla lacinia eros.  Sed id ligula quis est convallis tempor.  Curabitur lacinia pulvinar nibh.  Nam a sapien.\n\n", text "Aliquam erat volutpat.  Nunc eleifend leo vitae magna.  In id erat non orci commodo lobortis.  Proin neque massa, cursus ut, gravida ut, lobortis eget, lacus.  Sed diam.  Praesent fermentum tempor tellus.  Nullam tempus.  Mauris ac felis vel velit tristique imperdiet.  Donec at pede.  Etiam vel neque nec dui dignissim bibendum.  Vivamus id enim.  Phasellus neque orci, porta a, aliquet quis, semper a, massa.  Phasellus purus.  Pellentesque tristique imperdiet tortor.  Nam euismod tellus id erat.\n\nNullam eu ante vel est convallis dignissim.  Fusce suscipit, wisi nec facilisis facilisis, est dui fermentum leo, quis tempor ligula erat quis odio.  Nunc porta vulputate tellus.  Nunc rutrum turpis sed pede.  Sed bibendum.  Aliquam posuere.  Nunc aliquet, augue nec adipiscing interdum, lacus tellus malesuada massa, quis varius mi purus non odio.  Pellentesque condimentum, magna ut suscipit hendrerit, ipsum augue ornare nulla, non luctus diam neque sit amet urna.  Curabitur vulputate vestibulum lorem.  Fusce sagittis, libero non molestie mollis, magna orci ultrices dolor, at vulputate neque nulla lacinia eros.  Sed id ligula quis est convallis tempor.  Curabitur lacinia pulvinar nibh.  Nam a sapien.\n\n", text "Aliquam erat volutpat.  Nunc eleifend leo vitae magna.  In id erat non orci commodo lobortis.  Proin neque massa, cursus ut, gravida ut, lobortis eget, lacus.  Sed diam.  Praesent fermentum tempor tellus.  Nullam tempus.  Mauris ac felis vel velit tristique imperdiet.  Donec at pede.  Etiam vel neque nec dui dignissim bibendum.  Vivamus id enim.  Phasellus neque orci, porta a, aliquet quis, semper a, massa.  Phasellus purus.  Pellentesque tristique imperdiet tortor.  Nam euismod tellus id erat.\n\nNullam eu ante vel est convallis dignissim.  Fusce suscipit, wisi nec facilisis facilisis, est dui fermentum leo, quis tempor ligula erat quis odio.  Nunc porta vulputate tellus.  Nunc rutrum turpis sed pede.  Sed bibendum.  Aliquam posuere.  Nunc aliquet, augue nec adipiscing interdum, lacus tellus malesuada massa, quis varius mi purus non odio.  Pellentesque condimentum, magna ut suscipit hendrerit, ipsum augue ornare nulla, non luctus diam neque sit amet urna.  Curabitur vulputate vestibulum lorem.  Fusce sagittis, libero non molestie mollis, magna orci ultrices dolor, at vulputate neque nulla lacinia eros.  Sed id ligula quis est convallis tempor.  Curabitur lacinia pulvinar nibh.  Nam a sapien.\n\n" ]
 
 
 main : Program Flags Model Msg
