@@ -7,7 +7,11 @@ import Element.Background as Background
 import Html exposing (Html)
 import Html.Attributes exposing (style)
 import Iso8601
+import List.Extra
+import Primitives exposing (newTimeWindow)
+import Schedule exposing (ResourceId(..), Schedule, mapReservations, newResource, newSchedule)
 import Time exposing (Posix)
+import Timetable exposing (Timeslot, Timetable)
 
 
 type Page
@@ -20,8 +24,7 @@ type Msg
 
 type alias Model =
     { currPage : Page
-    , timetable : List Schedule
-    , timetableConfig : TimetableConfig
+    , timetable : Timetable
     }
 
 
@@ -29,52 +32,22 @@ type alias Flags =
     ()
 
 
-type Resource
-    = Resource { id : ResourceId, name : String }
-
-
-newResource : ResourceId -> String -> Resource
-newResource id name =
-    Resource { id = id, name = name }
-
-
-type ResourceId
-    = ResourceId String
-
-
-type Reservation
-    = Reservation { id : ReservationId, start : Posix, duration : Duration }
-
-
-type ReservationId
-    = ReservationId String
-
-
-type Schedule
-    = Schedule Resource (List Reservation)
-
-
-type alias TimetableConfig =
-    { start : Posix
-    , duration : Duration
-    }
-
-
 sampleTimetable =
-    [ Schedule
-        (newResource (ResourceId "id1") "ZS 672AE")
-        []
-    , Schedule
-        (newResource (ResourceId "id1") "ZS 8127S")
-        []
-    ]
+    Timetable.newFromSchedules
+        (Primitives.newTimeWindow (Time.millisToPosix 1562533510000) (Duration.hours 24))
+        [ newSchedule
+            (newResource (ResourceId "id1") "ZS 672AE")
+            []
+        , newSchedule
+            (newResource (ResourceId "id1") "ZS 8127S")
+            []
+        ]
 
 
 init : Flags -> ( Model, Cmd Msg )
 init _ =
     ( { currPage = InputPage
       , timetable = sampleTimetable
-      , timetableConfig = { start = Time.millisToPosix 1562533510000, duration = Duration.hours 24 }
       }
     , Cmd.none
     )
@@ -108,120 +81,86 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "VisExp"
     , body =
-        [ layout [] <| viewTimetable model.timetableConfig model.timetable
+        [ layout [] <| viewTimetable model.timetable
         ]
     }
 
 
-viewTimetable : TimetableConfig -> List Schedule -> Element Msg
-viewTimetable timetableConfig timetable =
-    row [ height fill ]
-        [ column [ width fill ]
-            [ row [ height fill ]
-                [ text "Hello world" ]
-            , row
-                [ height fill, width fill ]
-              <|
-                viewOffsetCol
-                    :: List.map (viewScheduleCol timetableConfig) timetable
-            ]
+viewTimetable : Timetable -> Element Msg
+viewTimetable timetable =
+    let
+        header attrs =
+            viewTimetableHeaderRow attrs timetable
+
+        data =
+            Timetable.mapTimeslotsOverTime
+                viewTimetableRow
+                timetable
+    in
+    row [ width fill, height fill ]
+        [ column [ width fill, inFront <| header sticky ] <|
+            header []
+                :: data
         ]
 
 
-viewOffsetCol : Element Msg
-viewOffsetCol =
+viewTimetableHeaderRow : List (Attribute Msg) -> Timetable -> Element Msg
+viewTimetableHeaderRow attrs timetable =
     let
-        offsetRows =
-            dayTimeOffsets
-                |> List.map (\offset -> row [ alignRight ] [ text <| formatOffset offset ])
+        resourceNames =
+            Timetable.getResourceNames timetable
+
+        titles =
+            ( "Czas", alignRight )
+                :: (resourceNames
+                        |> List.map (\name -> ( name, alignLeft ))
+                   )
+
+        columns =
+            titles
+                |> List.map (\( title, align ) -> column [ width <| fillPortion 1 ] [ el [ align ] <| text title ])
     in
-    column [ inFront <| stickyHeader "Czas" ] <| stickyHeader "Czas" :: offsetRows
+    row
+        ([ width fill
+         , Background.color <| rgba 0.8 0.8 0.8 0.8
+         , spacing 3
+         ]
+            ++ attrs
+        )
+        columns
+
+
+viewTimetableRow : Duration -> List Timeslot -> Element Msg
+viewTimetableRow offset timeslots =
+    row
+        [ width fill
+        , spacing 3
+        ]
+        (viewOffsetCol [ width <| fillPortion 1 ] offset
+            :: (timeslots
+                    |> List.map (\timeslot -> column [ width <| fillPortion 1 ] [ text "XXX" ])
+               )
+        )
+
+
+viewOffsetCol : List (Attribute Msg) -> Duration -> Element Msg
+viewOffsetCol attrs offset =
+    column ([] ++ attrs) <| [ el [ alignRight ] <| text <| formatOffset offset ]
+
+
+viewTimeslotRow : Timeslot -> Element Msg
+viewTimeslotRow timeslot =
+    timeslot
+        |> Timetable.mapReservedTimeslot
+            (\offset _ ->
+                row [] [ text <| formatOffset offset ]
+            )
+        |> Maybe.withDefault (row [] [])
 
 
 sticky : List (Attribute msg)
 sticky =
     List.map htmlAttribute [ style "position" "sticky", style "top" "0" ]
-
-
-stickyHeader : String -> Element Msg
-stickyHeader title =
-    row
-        ([ width fill
-         , Background.color <| rgba 0.8 0.8 0.8 0.8
-         , padding 3
-         ]
-            ++ sticky
-        )
-        [ text title
-        ]
-
-
-viewScheduleCol : TimetableConfig -> Schedule -> Element Msg
-viewScheduleCol timetableConfig (Schedule (Resource { name }) reservations) =
-    column [ height fill, width fill, inFront <| stickyHeader name ] <|
-        [ stickyHeader name -- Repeat to provide padding for stickyHeader ^
-        , row [] [ viewReservationCol timetableConfig reservations ]
-        ]
-
-
-viewReservationCol : TimetableConfig -> List Reservation -> Element Msg
-viewReservationCol timetableConfig reservations =
-    let
-        timeslots =
-            timeslotsFrom timetableConfig reservations
-    in
-    column [] <|
-        List.map viewTimeslotRow timeslots
-
-
-type Timeslot
-    = EmptyTimeslot { offset : Duration }
-    | ReservedTimeslot { offset : Duration, reservations : List Reservation }
-
-
-timeslotFromReservation : Reservation -> Timeslot
-timeslotFromReservation reservation =
-    EmptyTimeslot { offset = Duration.minutes 0 }
-
-
-mergeTimeslots : List Timeslot -> List Timeslot -> List Timeslot
-mergeTimeslots xs ys =
-    xs
-
-
-dayTimeOffsets : List Duration
-dayTimeOffsets =
-    let
-        offsets =
-            List.range 0 47
-                |> List.map ((*) 30 >> toFloat)
-    in
-    offsets
-        |> List.map Duration.minutes
-
-
-timeslotsFrom : TimetableConfig -> List Reservation -> List Timeslot
-timeslotsFrom { start, duration } reservations =
-    let
-        empties =
-            dayTimeOffsets
-                |> List.map (\offset -> EmptyTimeslot { offset = offset })
-
-        reservies =
-            reservations
-                |> List.map timeslotFromReservation
-    in
-    mergeTimeslots empties reservies
-
-
-viewTimeslotRow : Timeslot -> Element Msg
-viewTimeslotRow timeslot =
-    case timeslot of
-        EmptyTimeslot { offset } ->
-            row [] []
-
-        ReservedTimeslot { offset } ->
-            row [] [ text <| formatOffset offset ]
 
 
 formatOffset : Duration -> String
