@@ -11,7 +11,7 @@ import List.Extra
 import Schedule exposing (ResourceId(..), Schedule, mapReservations, newResource, newSchedule)
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow, make)
-import Timetable exposing (Timeslot(..), Timetable)
+import Timetable exposing (Allocation(..), Timetable)
 
 
 type Page
@@ -35,7 +35,7 @@ type alias Flags =
 sampleTimetable =
     Timetable.newFromSchedules
         48
-        (TimeWindow.make (Time.millisToPosix 1562533510000) (Duration.hours 24))
+        (TimeWindow.make (Time.millisToPosix 0) (Duration.hours 24))
         [ newSchedule
             (newResource (ResourceId "id1") "ZS 672AE")
             []
@@ -94,9 +94,7 @@ viewTimetable timetable =
             viewTimetableHeaderRow attrs timetable
 
         data =
-            Timetable.mapTimeslotsOverTime
-                viewTimetableRow
-                timetable
+            Timetable.mapRows viewTimetableRow timetable
     in
     row [ width fill, height fill ]
         [ column [ width fill, inFront <| header sticky ] <|
@@ -131,28 +129,28 @@ viewTimetableHeaderRow attrs timetable =
         columns
 
 
-viewTimetableRow : TimeWindow -> List Timeslot -> Element Msg
-viewTimetableRow window timeslots =
+viewTimetableRow : TimeWindow -> List Allocation -> Element Msg
+viewTimetableRow window allocations =
     row
         [ width fill
         , spacing 3
         ]
-        (viewOffsetCol [ width <| fillPortion 1 ] offset
-            :: (timeslots
-                    |> List.map (\timeslot -> column [ width <| fillPortion 1 ] [ text "XXX" ])
+        (viewOffsetCol [ width <| fillPortion 1 ] window
+            :: (allocations
+                    |> List.map (\allocation -> column [ width <| fillPortion 1 ] [ viewAllocation allocation ])
                )
         )
 
 
-viewOffsetCol : List (Attribute Msg) -> Duration -> Element Msg
-viewOffsetCol attrs offset =
-    column ([] ++ attrs) <| [ el [ alignRight ] <| text <| formatOffset offset ]
+viewOffsetCol : List (Attribute Msg) -> TimeWindow -> Element Msg
+viewOffsetCol attrs window =
+    column ([] ++ attrs) <| [ el [ alignRight ] <| text <| TimeWindow.formatStart window ]
 
 
-viewTimeslotRow : Timeslot -> Element Msg
-viewTimeslotRow timeslot =
-    case timeslot of
-        Available _ ->
+viewAllocation : Allocation -> Element Msg
+viewAllocation allocation =
+    case allocation of
+        Available ->
             row [] []
 
         Reserved _ ->
