@@ -8,10 +8,10 @@ import Html exposing (Html)
 import Html.Attributes exposing (style)
 import Iso8601
 import List.Extra
-import Primitives exposing (newTimeWindow)
 import Schedule exposing (ResourceId(..), Schedule, mapReservations, newResource, newSchedule)
 import Time exposing (Posix)
-import Timetable exposing (Timeslot, Timetable)
+import TimeWindow exposing (TimeWindow, make)
+import Timetable exposing (Timeslot(..), Timetable)
 
 
 type Page
@@ -34,7 +34,8 @@ type alias Flags =
 
 sampleTimetable =
     Timetable.newFromSchedules
-        (Primitives.newTimeWindow (Time.millisToPosix 1562533510000) (Duration.hours 24))
+        48
+        (TimeWindow.make (Time.millisToPosix 1562533510000) (Duration.hours 24))
         [ newSchedule
             (newResource (ResourceId "id1") "ZS 672AE")
             []
@@ -130,8 +131,8 @@ viewTimetableHeaderRow attrs timetable =
         columns
 
 
-viewTimetableRow : Duration -> List Timeslot -> Element Msg
-viewTimetableRow offset timeslots =
+viewTimetableRow : TimeWindow -> List Timeslot -> Element Msg
+viewTimetableRow window timeslots =
     row
         [ width fill
         , spacing 3
@@ -150,12 +151,15 @@ viewOffsetCol attrs offset =
 
 viewTimeslotRow : Timeslot -> Element Msg
 viewTimeslotRow timeslot =
-    timeslot
-        |> Timetable.mapReservedTimeslot
-            (\offset _ ->
-                row [] [ text <| formatOffset offset ]
-            )
-        |> Maybe.withDefault (row [] [])
+    case timeslot of
+        Available _ ->
+            row [] []
+
+        Reserved _ ->
+            row [] [ text "+" ]
+
+        Overbooked _ ->
+            row [] [ text "!" ]
 
 
 sticky : List (Attribute msg)
@@ -176,10 +180,6 @@ formatOffset offset =
             60 * (hours - toFloat fullHours) |> round
     in
     String.fromInt fullHours ++ ":" ++ String.fromInt minutes
-
-
-loremParagraph =
-    paragraph [] [ text "Aliquam erat volutpat.  Nunc eleifend leo vitae magna.  In id erat non orci commodo lobortis.  Proin neque massa, cursus ut, gravida ut, lobortis eget, lacus.  Sed diam.  Praesent fermentum tempor tellus.  Nullam tempus.  Mauris ac felis vel velit tristique imperdiet.  Donec at pede.  Etiam vel neque nec dui dignissim bibendum.  Vivamus id enim.  Phasellus neque orci, porta a, aliquet quis, semper a, massa.  Phasellus purus.  Pellentesque tristique imperdiet tortor.  Nam euismod tellus id erat.\n\nNullam eu ante vel est convallis dignissim.  Fusce suscipit, wisi nec facilisis facilisis, est dui fermentum leo, quis tempor ligula erat quis odio.  Nunc porta vulputate tellus.  Nunc rutrum turpis sed pede.  Sed bibendum.  Aliquam posuere.  Nunc aliquet, augue nec adipiscing interdum, lacus tellus malesuada massa, quis varius mi purus non odio.  Pellentesque condimentum, magna ut suscipit hendrerit, ipsum augue ornare nulla, non luctus diam neque sit amet urna.  Curabitur vulputate vestibulum lorem.  Fusce sagittis, libero non molestie mollis, magna orci ultrices dolor, at vulputate neque nulla lacinia eros.  Sed id ligula quis est convallis tempor.  Curabitur lacinia pulvinar nibh.  Nam a sapien.\n\n", text "Aliquam erat volutpat.  Nunc eleifend leo vitae magna.  In id erat non orci commodo lobortis.  Proin neque massa, cursus ut, gravida ut, lobortis eget, lacus.  Sed diam.  Praesent fermentum tempor tellus.  Nullam tempus.  Mauris ac felis vel velit tristique imperdiet.  Donec at pede.  Etiam vel neque nec dui dignissim bibendum.  Vivamus id enim.  Phasellus neque orci, porta a, aliquet quis, semper a, massa.  Phasellus purus.  Pellentesque tristique imperdiet tortor.  Nam euismod tellus id erat.\n\nNullam eu ante vel est convallis dignissim.  Fusce suscipit, wisi nec facilisis facilisis, est dui fermentum leo, quis tempor ligula erat quis odio.  Nunc porta vulputate tellus.  Nunc rutrum turpis sed pede.  Sed bibendum.  Aliquam posuere.  Nunc aliquet, augue nec adipiscing interdum, lacus tellus malesuada massa, quis varius mi purus non odio.  Pellentesque condimentum, magna ut suscipit hendrerit, ipsum augue ornare nulla, non luctus diam neque sit amet urna.  Curabitur vulputate vestibulum lorem.  Fusce sagittis, libero non molestie mollis, magna orci ultrices dolor, at vulputate neque nulla lacinia eros.  Sed id ligula quis est convallis tempor.  Curabitur lacinia pulvinar nibh.  Nam a sapien.\n\n", text "Aliquam erat volutpat.  Nunc eleifend leo vitae magna.  In id erat non orci commodo lobortis.  Proin neque massa, cursus ut, gravida ut, lobortis eget, lacus.  Sed diam.  Praesent fermentum tempor tellus.  Nullam tempus.  Mauris ac felis vel velit tristique imperdiet.  Donec at pede.  Etiam vel neque nec dui dignissim bibendum.  Vivamus id enim.  Phasellus neque orci, porta a, aliquet quis, semper a, massa.  Phasellus purus.  Pellentesque tristique imperdiet tortor.  Nam euismod tellus id erat.\n\nNullam eu ante vel est convallis dignissim.  Fusce suscipit, wisi nec facilisis facilisis, est dui fermentum leo, quis tempor ligula erat quis odio.  Nunc porta vulputate tellus.  Nunc rutrum turpis sed pede.  Sed bibendum.  Aliquam posuere.  Nunc aliquet, augue nec adipiscing interdum, lacus tellus malesuada massa, quis varius mi purus non odio.  Pellentesque condimentum, magna ut suscipit hendrerit, ipsum augue ornare nulla, non luctus diam neque sit amet urna.  Curabitur vulputate vestibulum lorem.  Fusce sagittis, libero non molestie mollis, magna orci ultrices dolor, at vulputate neque nulla lacinia eros.  Sed id ligula quis est convallis tempor.  Curabitur lacinia pulvinar nibh.  Nam a sapien.\n\n" ]
 
 
 main : Program Flags Model Msg

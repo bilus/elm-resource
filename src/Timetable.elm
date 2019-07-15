@@ -1,23 +1,27 @@
-module Timetable exposing (Timeslot, Timetable, getResourceNames, mapReservedTimeslot, mapTimeslotsOverTime, newFromSchedules)
+module Timetable exposing (Timeslot(..), Timetable, getResourceNames, mapReservedTimeslot, mapTimeslotsOverTime, newFromSchedules)
 
 import Duration exposing (Duration)
 import List.Extra
-import Primitives exposing (TimeWindow)
 import Schedule exposing (Reservation, Resource, Schedule)
+import TimeWindow exposing (TimeWindow)
 
 
 type Timeslot
-    = EmptyTimeslot { offset : Duration }
-    | ReservedTimeslot { offset : Duration, reservations : List Reservation }
+    = Available { window : TimeWindow }
+    | Reserved { window : TimeWindow, reservation : Reservation }
+    | Overbooked { window : TimeWindow, conflicts : List Reservation }
 
 
-mapReservedTimeslot : (Duration -> List Reservation -> a) -> Timeslot -> Maybe a
+mapReservedTimeslot : (TimeWindow -> Reservation -> a) -> Timeslot -> Maybe a
 mapReservedTimeslot f timeslot =
     case timeslot of
-        ReservedTimeslot { offset, reservations } ->
-            Just (f offset reservations)
+        Reserved { window, reservation } ->
+            Just (f window reservation)
 
-        EmptyTimeslot _ ->
+        Overbooked _ ->
+            Nothing
+
+        Available _ ->
             Nothing
 
 
@@ -28,17 +32,43 @@ type Timetable
         }
 
 
-newFromSchedules : TimeWindow -> List Schedule -> Timetable
-newFromSchedules window schedules =
+newFromSchedules : Int -> TimeWindow -> List Schedule -> Timetable
+newFromSchedules timeslotCount window schedules =
     Timetable
-        { timeslots = buildTimeslots window schedules
+        { timeslots = List.map (buildTimeslots timeslotCount window) schedules
         , window = window
         }
 
 
-buildTimeslots : TimeWindow -> List Schedule -> List ( Resource, List Timeslot )
-buildTimeslots window schedules =
-    []
+buildTimeslots : Int -> TimeWindow -> Schedule -> ( Resource, List Timeslot )
+buildTimeslots count window schedule =
+    let
+        reservations =
+            Schedule.getReservations schedule
+
+        timeslots =
+            TimeWindow.split count window
+                |> List.map (buildTimeslot reservations)
+    in
+    ( Schedule.getResource schedule, timeslots )
+
+
+buildTimeslot : List Reservation -> TimeWindow -> Timeslot
+buildTimeslot reservations window =
+    let
+        matches =
+            reservations
+                |> List.filter (Schedule.isReservationOverlapping window)
+    in
+    case matches of
+        [] ->
+            Available { window = window }
+
+        [ reservation ] ->
+            Reserved { window = window, reservation = reservation }
+
+        conflicts ->
+            Overbooked { window = window, conflicts = conflicts }
 
 
 getResourceNames : Timetable -> List String
@@ -55,7 +85,7 @@ getTimeslotsOverTime (Timetable { timeslots }) =
 
 
 mapTimeslotsOverTime : (Duration -> List Timeslot -> a) -> Timetable -> List a
-mapTimeslotsOverTime f ((Timetable { window }) as timetable) =
+mapTimeslotsOverTime f ((Timetable { timeslots }) as timetable) =
     timetable
         |> getTimeslotsOverTime
         |> List.Extra.zip (dayTimeOffsets window)
@@ -65,7 +95,7 @@ mapTimeslotsOverTime f ((Timetable { window }) as timetable) =
             )
 
 
-dayTimeOffsets : TimeWindow -> List Duration
+dayTimeOffsets : TimeWindow -> List Duratio
 dayTimeOffsets _ =
     -- TODO: Generate them properly
     let

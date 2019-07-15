@@ -1,8 +1,8 @@
-module Schedule exposing (Reservation, ReservationId(..), Resource, ResourceId(..), Schedule, getReservations, getResource, getResourceName, mapReservations, newResource, newSchedule)
+module Schedule exposing (Reservation, ReservationId(..), Resource, ResourceId(..), Schedule, getReservations, getResource, getResourceName, isReservationOverlapping, mapReservations, newReservation, newResource, newSchedule)
 
 import Duration as Duration exposing (Duration)
-import Primitives exposing (TimeWindow(..))
 import Time exposing (Posix)
+import TimeWindow exposing (TimeWindow, make)
 
 
 type ResourceId
@@ -25,6 +25,16 @@ getResourceName (Resource { name }) =
 
 type Reservation
     = Reservation { id : ReservationId, window : TimeWindow }
+
+
+newReservation : ReservationId -> Posix -> Duration -> Reservation
+newReservation id start duration =
+    Reservation { id = id, window = make start duration }
+
+
+isReservationOverlapping : TimeWindow -> Reservation -> Bool
+isReservationOverlapping otherWindow (Reservation { window }) =
+    TimeWindow.overlaps otherWindow window
 
 
 type ReservationId
