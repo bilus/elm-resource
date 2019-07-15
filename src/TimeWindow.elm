@@ -74,4 +74,4 @@ overlaps (TimeWindow w1) (TimeWindow w2) =
         end2 =
             start2 + (w2.duration |> Duration.inMilliseconds |> round)
     in
-    end1 >= start2 && end2 >= start1
+    end1 > start2 && end2 > start1

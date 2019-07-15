@@ -1,14 +1,14 @@
 module Main exposing (main)
 
 import Browser
-import Duration as Duration exposing (Duration)
+import Duration as Duration exposing (Duration, hours)
 import Element exposing (..)
 import Element.Background as Background
 import Html exposing (Html)
 import Html.Attributes exposing (style)
 import Iso8601
 import List.Extra
-import Schedule exposing (ResourceId(..), Schedule, mapReservations, newResource, newSchedule)
+import Schedule exposing (ReservationId(..), ResourceId(..), Schedule, mapReservations, newResource, newSchedule)
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow, make)
 import Timetable exposing (Allocation(..), Timetable)
@@ -38,10 +38,10 @@ sampleTimetable =
         (TimeWindow.make (Time.millisToPosix 0) (Duration.hours 24))
         [ newSchedule
             (newResource (ResourceId "id1") "ZS 672AE")
-            []
+            [ Schedule.newReservation (ReservationId "r1") (Time.millisToPosix (1000 * 60 * 30)) (hours 4) ]
         , newSchedule
             (newResource (ResourceId "id1") "ZS 8127S")
-            []
+            [ Schedule.newReservation (ReservationId "r2") (Time.millisToPosix (1000 * 60 * 180)) (hours 1) ]
         ]
 
 
