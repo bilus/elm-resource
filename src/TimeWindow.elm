@@ -43,10 +43,15 @@ formatStart (TimeWindow { start }) =
             Time.utc
 
         -- TODO: Make zone configurable or use CEST
+        hours =
+            String.fromInt (Time.toHour zone start)
+                |> String.padLeft 2 '0'
+
+        minutes =
+            String.fromInt (Time.toMinute zone start)
+                |> String.padLeft 2 '0'
     in
-    String.fromInt (Time.toHour zone start)
-        ++ ":"
-        ++ String.fromInt (Time.toMinute zone start)
+    hours ++ ":" ++ minutes
 
 
 offsetTime : Posix -> Float -> Posix

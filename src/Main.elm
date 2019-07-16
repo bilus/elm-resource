@@ -11,7 +11,7 @@ import List.Extra
 import Schedule exposing (ReservationId(..), ResourceId(..), Schedule, mapReservations, newResource, newSchedule)
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow, make)
-import Timetable exposing (Allocation(..), Timetable)
+import Timetable exposing (Allocation(..), ColumnStyle, Timetable)
 
 
 type Page
@@ -110,14 +110,14 @@ viewTimetableHeaderRow attrs timetable =
             Timetable.getResourceNames timetable
 
         titles =
-            ( "Czas", alignRight )
+            ( "Czas", [ width <| fillPortion 1 ], [ alignRight ] )
                 :: (resourceNames
-                        |> List.map (\name -> ( name, alignLeft ))
+                        |> List.map (\name -> ( name, [ width <| fillPortion 4 ], [ centerX ] ))
                    )
 
         columns =
             titles
-                |> List.map (\( title, align ) -> column [ width <| fillPortion 1 ] [ el [ align ] <| text title ])
+                |> List.map (\( title, colAttrs, textAttrs ) -> column colAttrs [ el textAttrs <| text title ])
     in
     row
         ([ width fill
@@ -129,15 +129,15 @@ viewTimetableHeaderRow attrs timetable =
         columns
 
 
-viewTimetableRow : TimeWindow -> List Allocation -> Element Msg
-viewTimetableRow window allocations =
+viewTimetableRow : TimeWindow -> List ( Allocation, ColumnStyle ) -> Element Msg
+viewTimetableRow window cols =
     row
         [ width fill
         , spacing 3
         ]
         (viewOffsetCol [ width <| fillPortion 1 ] window
-            :: (allocations
-                    |> List.map (\allocation -> column [ width <| fillPortion 1 ] [ viewAllocation allocation ])
+            :: (cols
+                    |> List.map (\col -> column [ width <| fillPortion 4, height fill ] [ viewAllocation col ])
                )
         )
 
@@ -147,37 +147,22 @@ viewOffsetCol attrs window =
     column ([] ++ attrs) <| [ el [ alignRight ] <| text <| TimeWindow.formatStart window ]
 
 
-viewAllocation : Allocation -> Element Msg
-viewAllocation allocation =
+viewAllocation : ( Allocation, ColumnStyle ) -> Element Msg
+viewAllocation ( allocation, style ) =
     case allocation of
         Available ->
-            row [] []
+            row [ width fill, height fill ] []
 
         Reserved _ ->
-            row [] [ text "+" ]
+            row [ width fill, height fill, Background.color style.reservedColor ] []
 
         Overbooked _ ->
-            row [] [ text "!" ]
+            row [ width fill, height fill, Background.color style.overbookedColor ] []
 
 
 sticky : List (Attribute msg)
 sticky =
     List.map htmlAttribute [ style "position" "sticky", style "top" "0" ]
-
-
-formatOffset : Duration -> String
-formatOffset offset =
-    let
-        hours =
-            Duration.inHours offset
-
-        fullHours =
-            floor hours
-
-        minutes =
-            60 * (hours - toFloat fullHours) |> round
-    in
-    String.fromInt fullHours ++ ":" ++ String.fromInt minutes
 
 
 main : Program Flags Model Msg
