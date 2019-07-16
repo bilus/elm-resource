@@ -1,6 +1,6 @@
-module TimeWindow exposing (TimeWindow, formatStart, getStart, make, overlaps, split)
+module TimeWindow exposing (TimeWindow, compare, formatStart, gap, getDuration, getEnd, getStart, isEmpty, make, overlaps, split)
 
-import Duration exposing (Duration)
+import Duration exposing (Duration, seconds)
 import Time exposing (Posix)
 
 
@@ -34,6 +34,20 @@ split count (TimeWindow { start, duration }) =
 getStart : TimeWindow -> Posix
 getStart (TimeWindow { start }) =
     start
+
+
+getEnd : TimeWindow -> Posix
+getEnd (TimeWindow { start, duration }) =
+    offsetTime start (Duration.inMilliseconds duration)
+
+
+getDuration : TimeWindow -> Duration
+getDuration (TimeWindow { duration }) =
+    duration
+
+
+
+-- TODO: Obsolete.
 
 
 formatStart : TimeWindow -> String
@@ -80,3 +94,48 @@ overlaps (TimeWindow w1) (TimeWindow w2) =
             start2 + (w2.duration |> Duration.inMilliseconds |> round)
     in
     end1 > start2 && end2 > start1
+
+
+compare : TimeWindow -> TimeWindow -> Order
+compare (TimeWindow w1) (TimeWindow w2) =
+    let
+        start1 =
+            w1.start |> Time.posixToMillis
+
+        start2 =
+            w2.start |> Time.posixToMillis
+    in
+    Basics.compare start1 start2
+
+
+gap : TimeWindow -> TimeWindow -> Maybe TimeWindow
+gap w1 w2 =
+    let
+        ( wa, wb ) =
+            case compare w1 w2 of
+                GT ->
+                    ( w2, w1 )
+
+                _ ->
+                    ( w1, w2 )
+    in
+    if overlaps wa wb then
+        Nothing
+
+    else
+        let
+            e =
+                getEnd wa
+
+            s =
+                getStart wb
+
+            d =
+                Duration.from e s
+        in
+        Just <| make e d
+
+
+isEmpty : TimeWindow -> Bool
+isEmpty (TimeWindow { duration }) =
+    duration == seconds 0

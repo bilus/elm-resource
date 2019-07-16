@@ -1,6 +1,7 @@
-module Schedule exposing (Reservation, ReservationId(..), Resource, ResourceId(..), Schedule, getReservations, getResource, getResourceName, isReservationOverlapping, mapReservations, newReservation, newResource, newSchedule)
+module Schedule exposing (Reservation(..), ReservationId(..), Resource, ResourceId(..), Schedule, getReservations, getResource, getResourceName, getWindow, isConflict, isReservationOverlapping, mapReservations, newReservation, newResource, newSchedule, sortReservations)
 
 import Duration as Duration exposing (Duration)
+import List.Extra
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow, make)
 
@@ -35,6 +36,25 @@ newReservation id start duration =
 isReservationOverlapping : TimeWindow -> Reservation -> Bool
 isReservationOverlapping otherWindow (Reservation { window }) =
     TimeWindow.overlaps otherWindow window
+
+
+isConflict : Reservation -> Reservation -> Bool
+isConflict (Reservation r1) (Reservation r2) =
+    TimeWindow.overlaps r1.window r2.window
+
+
+sortReservations : List Reservation -> List Reservation
+sortReservations =
+    let
+        compareStart (Reservation r1) (Reservation r2) =
+            TimeWindow.compare r1.window r2.window
+    in
+    List.Extra.stableSortWith compareStart
+
+
+getWindow : Reservation -> TimeWindow
+getWindow (Reservation { window }) =
+    window
 
 
 type ReservationId
