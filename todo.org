@@ -1,0 +1,34 @@
+* MVP
+** Client-side
+** No login
+** Looks nice
+** Feels nice
+** Spreedsheet-like
+** Dropbox feel
+* Manager can click an empty cell to add a new reservation
+* Manager can click an allocated cell, potentially splitting the reservation
+* Manager can select multiple cells in the same column to merge them
+* Manager can resize a reservation to change its time
+* Manager can add notes to a reservation
+
+* Manager can select a resource column so he can delete it
+* Manager can select any element of the table to add another resource column
+
+* Manager can select a resource column so he can change the color
+* Manager can select a resource column to reorder columns
+* Manager can select any element of the table to add a resource column between two existing columns
+* Manager can select the time column to change the time scale (15 minutes -> 30 minutes -> 1 hour -> half day -> whole day)
+* Manager can see overbooked resources
+* Manager can add a reservation using a form to avoid having to scroll through the table
+* Manager can see a reservation he's adding using a form creates a conflict.
+
+* Manager can add a new sheet
+* Manager can rename a sheet
+* Manager can delete a sheet
+
+* Manager can create reservations involving multiple resource columns
+* Manager can create reservations involving multiple sheets
+
+* Manager can switch to horizontal arrangements
+* Manager can search for resources
+* Manager can link customers to reservations (as resources?)
