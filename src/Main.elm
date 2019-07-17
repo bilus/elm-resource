@@ -1,10 +1,12 @@
 module Main exposing (main)
 
+import Array exposing (Array)
 import Browser
+import Color
 import Duration as Duration exposing (Duration, hours, minutes, seconds)
 import Element exposing (..)
 import Element.Background as Background
-import Element.Font as Font
+import Element.Font as Font exposing (Font)
 import Html exposing (Html)
 import Html.Attributes exposing (style)
 import Iso8601
@@ -19,6 +21,7 @@ type alias Sheet =
     { window : TimeWindow
     , pixelsPerSecond : Float
     , columns : List Column
+    , theme : Theme
     }
 
 
@@ -47,11 +50,62 @@ type Column
         }
 
 
-makeSheet : Int -> TimeWindow -> List Schedule -> Sheet
-makeSheet slotCount window schedules =
+type alias Theme =
+    { defaultCell : { heightPx : Int, widthPx : Int }
+    , columns : Array { bgColor : Color }
+    , header : { fontFamily : List Font, fontSize : Int }
+    , cells : { fontFamily : List Font, fontSize : Int }
+    }
+
+
+defaultTheme : Theme
+defaultTheme =
+    let
+        columns =
+            [ Color.orange
+            , Color.yellow
+            , Color.green
+            , Color.blue
+            , Color.purple
+            , Color.brown
+            , Color.lightOrange
+            , Color.lightYellow
+            , Color.lightGreen
+            , Color.lightBlue
+            , Color.lightPurple
+            , Color.lightBrown
+            , Color.darkOrange
+            , Color.darkYellow
+            , Color.darkGreen
+            , Color.darkBlue
+            , Color.darkPurple
+            , Color.darkBrown
+            ]
+                |> List.map toColor
+                |> List.map (\color -> { bgColor = color })
+                |> Array.fromList
+    in
+    { defaultCell = { heightPx = 30, widthPx = 200 }
+    , columns = columns
+    , header = { fontFamily = [ Font.typeface "Helvetica" ], fontSize = 20 }
+    , cells = { fontFamily = [ Font.typeface "Helvetica" ], fontSize = 20 }
+    }
+
+
+toColor : Color.Color -> Color
+toColor color =
+    let
+        { red, green, blue, alpha } =
+            Color.toRgba color
+    in
+    rgba red green blue alpha
+
+
+makeSheet : Theme -> Int -> TimeWindow -> List Schedule -> Sheet
+makeSheet theme slotCount window schedules =
     let
         slotHeight =
-            30.0
+            theme.defaultCell.heightPx
 
         slots =
             TimeWindow.split slotCount window
@@ -62,11 +116,12 @@ makeSheet slotCount window schedules =
                 |> Maybe.withDefault 0
 
         pixelsPerSecond =
-            slotHeight / duration
+            toFloat slotHeight / duration
     in
     { window = window
     , pixelsPerSecond = pixelsPerSecond
     , columns = makeTimeColumn slots :: List.map (makeResourceColumn window) schedules
+    , theme = theme
     }
 
 
@@ -235,7 +290,7 @@ sampleSchedule =
 init : Flags -> ( Model, Cmd Msg )
 init _ =
     ( { currPage = InputPage
-      , sheet = makeSheet 48 (TimeWindow.make (Time.millisToPosix 0) (Duration.hours 24)) sampleSchedule
+      , sheet = makeSheet defaultTheme 48 (TimeWindow.make (Time.millisToPosix 0) (Duration.hours 24)) sampleSchedule
       }
     , Cmd.none
     )
@@ -295,7 +350,7 @@ stickyHeader title =
          ]
             ++ sticky
         )
-        [ text title
+        [ el [ centerX ] <| text title
         ]
 
 
@@ -311,15 +366,35 @@ viewColumn sheet col =
 
 viewTimeColumn : Sheet -> List TimeWindow -> Element Msg
 viewTimeColumn sheet slots =
+    let
+        topPadding =
+            toFloat sheet.theme.defaultCell.heightPx / 2 |> round
+
+        slotRows =
+            row [ width fill, height <| px topPadding ]
+                []
+                :: (slots
+                        |> List.drop 1
+                        |> List.map (viewSlotRow sheet)
+                   )
+    in
     column [ width fill, height fill, inFront <| stickyHeader "Czas" ] <|
         stickyHeader "Czas"
-            :: List.map (viewSlotRow sheet) slots
+            :: slotRows
+
+
+edges =
+    { top = 0
+    , right = 0
+    , bottom = 0
+    , left = 0
+    }
 
 
 viewSlotRow : Sheet -> TimeWindow -> Element Msg
 viewSlotRow sheet window =
     row [ width fill, height (cellHeight sheet window) ] <|
-        [ el [ alignRight ] <| text <| TimeWindow.formatStart window ]
+        [ el [ alignRight, centerY ] <| text <| TimeWindow.formatStart window ]
 
 
 viewResourceColumn : Sheet -> Resource -> List SubColumn -> Element Msg
@@ -336,7 +411,7 @@ viewHeaderRow sheet resource =
 
 viewLayout : Sheet -> List SubColumn -> Element Msg
 viewLayout sheet subcolumns =
-    row [ width fill, height fill ] <|
+    row [ width fill, height fill, paddingXY 1 0 ] <|
         viewSubColumns sheet subcolumns
 
 
@@ -357,12 +432,12 @@ viewCellRow sheet cell =
         ( timeWindow, attrs ) =
             case cell of
                 CellAvailable window ->
-                    ( window, [ Background.color (rgb 0.9 0.9 0.9) ] )
+                    ( window, [] )
 
                 CellReserved (Reservation { id, window }) ->
                     ( window, [ Background.color (rgb 0.5 0.8 0.8) ] )
     in
-    row [ padding 1, width fill, height (cellHeight sheet timeWindow) ]
+    row [ paddingXY 0 1, width fill, height (cellHeight sheet timeWindow) ]
         [ el ([ width fill, height fill, Font.size 12 ] ++ attrs) <| text (cellLabel cell) ]
 
 
@@ -372,7 +447,8 @@ cellLabel cell =
         w =
             cellWindow cell
     in
-    (TimeWindow.getStart w |> formatTime) ++ " - " ++ (TimeWindow.getEnd w |> formatTime)
+    -- (TimeWindow.getStart w |> formatTime) ++ " - " ++ (TimeWindow.getEnd w |> formatTime)
+    ""
 
 
 formatTime : Posix -> String
