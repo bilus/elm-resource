@@ -3,7 +3,7 @@ module Main exposing (main)
 import Array exposing (Array)
 import Browser
 import Color
-import Duration as Duration exposing (Duration, hours, minutes, seconds)
+import Duration exposing (Duration, hours, minutes, seconds)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font exposing (Font)
@@ -13,238 +13,10 @@ import Iso8601
 import List.Extra
 import Maybe.Extra
 import Schedule exposing (Reservation(..), ReservationId(..), Resource, ResourceId(..), Schedule, mapReservations, newResource, newSchedule)
+import Sheet exposing (Cell(..), Column(..), Sheet, SubColumn)
+import Theme
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow, make)
-
-
-type alias Sheet =
-    { window : TimeWindow
-    , pixelsPerSecond : Float
-    , columns : List Column
-    , theme : Theme
-    }
-
-
-type alias ColumnStyle =
-    { reservedColor : Color
-    , overbookedColor : Color
-    }
-
-
-type alias SubColumn =
-    List Cell
-
-
-type Cell
-    = CellAvailable TimeWindow
-    | CellReserved Reservation
-
-
-type Column
-    = ResourceColumn
-        { resource : Resource
-        , subcolumns : List SubColumn
-        }
-    | TimeColumn
-        { slots : List TimeWindow
-        }
-
-
-type alias Theme =
-    { defaultCell : { heightPx : Int, widthPx : Int }
-    , columns : Array { bgColor : Color }
-    , header : { fontFamily : List Font, fontSize : Int }
-    , cells : { fontFamily : List Font, fontSize : Int }
-    }
-
-
-defaultTheme : Theme
-defaultTheme =
-    let
-        columns =
-            [ Color.orange
-            , Color.yellow
-            , Color.green
-            , Color.blue
-            , Color.purple
-            , Color.brown
-            , Color.lightOrange
-            , Color.lightYellow
-            , Color.lightGreen
-            , Color.lightBlue
-            , Color.lightPurple
-            , Color.lightBrown
-            , Color.darkOrange
-            , Color.darkYellow
-            , Color.darkGreen
-            , Color.darkBlue
-            , Color.darkPurple
-            , Color.darkBrown
-            ]
-                |> List.map toColor
-                |> List.map (\color -> { bgColor = color })
-                |> Array.fromList
-    in
-    { defaultCell = { heightPx = 30, widthPx = 200 }
-    , columns = columns
-    , header = { fontFamily = [ Font.typeface "Helvetica" ], fontSize = 20 }
-    , cells = { fontFamily = [ Font.typeface "Helvetica" ], fontSize = 20 }
-    }
-
-
-toColor : Color.Color -> Color
-toColor color =
-    let
-        { red, green, blue, alpha } =
-            Color.toRgba color
-    in
-    rgba red green blue alpha
-
-
-makeSheet : Theme -> Int -> TimeWindow -> List Schedule -> Sheet
-makeSheet theme slotCount window schedules =
-    let
-        slotHeight =
-            theme.defaultCell.heightPx
-
-        slots =
-            TimeWindow.split slotCount window
-
-        duration =
-            List.head slots
-                |> Maybe.map (Duration.inSeconds << TimeWindow.getDuration)
-                |> Maybe.withDefault 0
-
-        pixelsPerSecond =
-            toFloat slotHeight / duration
-    in
-    { window = window
-    , pixelsPerSecond = pixelsPerSecond
-    , columns = makeTimeColumn slots :: List.map (makeResourceColumn window) schedules
-    , theme = theme
-    }
-
-
-makeTimeColumn : List TimeWindow -> Column
-makeTimeColumn slots =
-    TimeColumn { slots = slots }
-
-
-makeResourceColumn : TimeWindow -> Schedule -> Column
-makeResourceColumn window schedule =
-    ResourceColumn
-        { resource = Schedule.getResource schedule
-        , subcolumns = makeSubcolumns window <| Schedule.getReservations schedule
-        }
-
-
-makeSubcolumns : TimeWindow -> List Reservation -> List SubColumn
-makeSubcolumns window reservations =
-    reservations
-        |> List.Extra.gatherWith Schedule.isConflict
-        |> List.map (\( x, xs ) -> x :: xs)
-        |> slice
-        -- Columns with most reservations on the left
-        |> List.Extra.stableSortWith cmpLength
-        |> List.reverse
-        -- Make each sub-column continuous by filling gaps with empty cells
-        |> List.map
-            (fillInGaps window << List.map CellReserved << Schedule.sortReservations)
-
-
-
-{-
-   Similar to zip for an arbitrary number of lists, except it works for jagged lists.
-
-   Example:
-
-       slice [[1, 2, 3], [4], [], [5, 6]] => [[1, 4, 5], [2, 6], [3]]
--}
-
-
-slice : List (List a) -> List (List a)
-slice xss =
-    let
-        heads =
-            xss
-                |> List.map List.head
-                |> Maybe.Extra.values
-
-        rests =
-            xss
-                |> List.map List.tail
-                |> Maybe.Extra.values
-                |> List.filter ((/=) [])
-    in
-    case rests of
-        [] ->
-            [ heads ]
-
-        _ ->
-            heads :: slice rests
-
-
-makeCell : Posix -> Duration -> Cell
-makeCell start duration =
-    CellAvailable (TimeWindow.make start duration)
-
-
-fillInGaps : TimeWindow -> List Cell -> List Cell
-fillInGaps window cells =
-    let
-        startPlaceholder =
-            makeCell (TimeWindow.getStart window) (seconds 0)
-
-        endPlaceholder =
-            makeCell (TimeWindow.getEnd window) (seconds 0)
-
-        cells2 =
-            startPlaceholder :: cells ++ [ endPlaceholder ]
-
-        fix ( c1, c2 ) =
-            case gapFiller c1 c2 of
-                Just filler ->
-                    [ filler, c2 ]
-
-                Nothing ->
-                    [ c2 ]
-    in
-    cells2
-        |> window2
-        |> List.concatMap fix
-        |> List.filter (not << TimeWindow.isEmpty << cellWindow)
-
-
-cellWindow : Cell -> TimeWindow
-cellWindow cell =
-    case cell of
-        CellAvailable window ->
-            window
-
-        CellReserved reservation ->
-            Schedule.getWindow reservation
-
-
-gapFiller : Cell -> Cell -> Maybe Cell
-gapFiller c1 c2 =
-    let
-        w1 =
-            cellWindow c1
-
-        w2 =
-            cellWindow c2
-    in
-    TimeWindow.gap w1 w2
-        |> Maybe.map CellAvailable
-
-
-window2 xs =
-    List.Extra.zip xs (List.tail xs |> Maybe.withDefault [])
-
-
-cmpLength : List a -> List b -> Order
-cmpLength xs ys =
-    compare (List.length xs) (List.length ys)
 
 
 type Page
@@ -290,7 +62,7 @@ sampleSchedule =
 init : Flags -> ( Model, Cmd Msg )
 init _ =
     ( { currPage = InputPage
-      , sheet = makeSheet defaultTheme 48 (TimeWindow.make (Time.millisToPosix 0) (Duration.hours 24)) sampleSchedule
+      , sheet = Sheet.make Theme.defaultTheme 48 (TimeWindow.make (Time.millisToPosix 0) (Duration.hours 24)) sampleSchedule
       }
     , Cmd.none
     )
@@ -429,15 +201,15 @@ viewSubColumn sheet subcol =
 viewCellRow : Sheet -> Cell -> Element Msg
 viewCellRow sheet cell =
     let
-        ( timeWindow, attrs ) =
+        attrs =
             case cell of
-                CellAvailable window ->
-                    ( window, [] )
+                CellAvailable _ ->
+                    []
 
-                CellReserved (Reservation { id, window }) ->
-                    ( window, [ Background.color (rgb 0.5 0.8 0.8) ] )
+                CellReserved _ ->
+                    [ Background.color (rgb 0.5 0.8 0.8) ]
     in
-    row [ paddingXY 0 1, width fill, height (cellHeight sheet timeWindow) ]
+    row [ paddingXY 0 1, width fill, height (cellHeight sheet (Sheet.cellWindow cell)) ]
         [ el ([ width fill, height fill, Font.size 12 ] ++ attrs) <| text (cellLabel cell) ]
 
 
@@ -445,7 +217,7 @@ cellLabel : Cell -> String
 cellLabel cell =
     let
         w =
-            cellWindow cell
+            Sheet.cellWindow cell
     in
     -- (TimeWindow.getStart w |> formatTime) ++ " - " ++ (TimeWindow.getEnd w |> formatTime)
     ""
