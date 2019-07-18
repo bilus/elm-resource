@@ -171,14 +171,24 @@ reservedCell : Theme -> TimeWindow -> CellState s -> Element msg -> msg -> Eleme
 reservedCell theme window { selected } elem onClickCell =
     let
         attrs =
-            [ if selected then
-                Background.color <| rgba 0.9 0.4 0.3 0.1
+            Background.color theme.cells.backgroundColor
+                :: (if selected then
+                        [ below <|
+                            handle theme
+                        , above <|
+                            handle theme
+                        ]
 
-              else
-                Background.color theme.cells.backgroundColor
-            ]
+                    else
+                        []
+                   )
     in
     cell theme attrs window elem onClickCell
+
+
+handle : Theme -> Element msg
+handle theme =
+    el [ centerX ] <| text "o"
 
 
 cell : Theme -> List (Attribute msg) -> TimeWindow -> Element msg -> msg -> Element msg

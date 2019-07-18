@@ -172,8 +172,9 @@ viewCell : Sheet -> CellRef -> Cell -> CellState -> Element Sheet.Msg
 viewCell sheet cellRef cell state =
     let
         labelEl =
-            text <| cellLabel cell ++ " " ++ Debug.toString cellRef ++ " " ++ Debug.toString state
+            text <| cellLabel cell
 
+        --++ " " ++ Debug.toString cellRef ++ " " ++ Debug.toString state
         onClick =
             Sheet.OnCellClicked cell cellRef
     in
@@ -191,7 +192,11 @@ cellLabel cell =
         w =
             Sheet.cellWindow cell
     in
-    (TimeWindow.getStart w |> formatTime) ++ " - " ++ (TimeWindow.getEnd w |> formatTime)
+    ""
+
+
+
+-- (TimeWindow.getStart w |> formatTime) ++ " - " ++ (TimeWindow.getEnd w |> formatTime)
 
 
 formatTime : Posix -> String
