@@ -18,6 +18,10 @@ type alias Theme =
     }
 
 
+type alias CellState s =
+    { s | selected : Bool }
+
+
 defaultTheme : Int -> TimeWindow -> Theme
 defaultTheme slotCount window =
     let
@@ -153,8 +157,8 @@ timeCell theme window =
         [ el [ alignRight, centerY ] <| text <| TimeWindow.formatStart window ]
 
 
-emptyCell : Theme -> TimeWindow -> Element msg -> Element msg
-emptyCell theme window elem =
+emptyCell : Theme -> TimeWindow -> CellState s -> Element msg -> Element msg
+emptyCell theme window state elem =
     let
         attrs =
             []
@@ -162,8 +166,8 @@ emptyCell theme window elem =
     cell theme attrs window elem
 
 
-reservedCell : Theme -> TimeWindow -> Element msg -> Element msg
-reservedCell theme window elem =
+reservedCell : Theme -> TimeWindow -> CellState s -> Element msg -> Element msg
+reservedCell theme window state elem =
     let
         attrs =
             [ Background.color theme.cells.backgroundColor

@@ -1,12 +1,14 @@
-module Sheet exposing (Cell(..), Column(..), Sheet, SubColumn, cellWindow, make)
+module Sheet exposing (Cell(..), CellState, Column(..), Sheet, SubColumn, cellWindow, make)
 
 import Duration exposing (Duration)
 import List.Extra
+import Monocle.Lens exposing (Lens)
 import Schedule exposing (Reservation, Resource, Schedule)
 import Theme exposing (Theme)
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow)
 import Util.List exposing (slice, window2)
+import Util.Selectable as Selectable exposing (Selectable)
 
 
 type alias Sheet =
@@ -14,15 +16,6 @@ type alias Sheet =
     , columns : List Column
     , theme : Theme
     }
-
-
-type alias SubColumn =
-    List Cell
-
-
-type Cell
-    = EmptyCell TimeWindow
-    | ReservedCell Reservation
 
 
 type Column
@@ -33,6 +26,23 @@ type Column
     | TimeColumn
         { slots : List TimeWindow
         }
+
+
+type alias SubColumn =
+    Selectable CellState Cell
+
+
+selected =
+    Lens .selected <| \x m -> { m | selected = x }
+
+
+type alias CellState =
+    { selected : Bool }
+
+
+type Cell
+    = EmptyCell TimeWindow
+    | ReservedCell Reservation
 
 
 make : Theme -> Int -> TimeWindow -> List Schedule -> Sheet
@@ -86,7 +96,7 @@ makeSubcolumns window reservations =
         |> List.reverse
         -- Make each sub-column continuous by filling gaps with empty cells
         |> List.map
-            (fillInGaps window << List.map ReservedCell << Schedule.sortReservations)
+            (Selectable.fromList { selected = True } << fillInGaps window << List.map ReservedCell << Schedule.sortReservations)
 
 
 makeCell : Posix -> Duration -> Cell

@@ -13,10 +13,11 @@ import Iso8601
 import List.Extra
 import Maybe.Extra
 import Schedule exposing (Reservation(..), ReservationId(..), Resource, ResourceId(..), Schedule, mapReservations, newResource, newSchedule)
-import Sheet exposing (Cell(..), Column(..), Sheet, SubColumn)
+import Sheet exposing (Cell(..), CellState, Column(..), Sheet, SubColumn)
 import Theme
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow, make)
+import Util.Selectable as Selectable
 
 
 type Page
@@ -141,22 +142,22 @@ viewResourceColumn sheet resource subcolumns =
     Theme.resourceColumn sheet.theme
         title
         (subcolumns
-            |> List.map (List.map (viewCell sheet))
+            |> List.map (Selectable.toList << Selectable.mapWithState (viewCell sheet))
         )
 
 
-viewCell : Sheet -> Cell -> Element Msg
-viewCell sheet cell =
+viewCell : Sheet -> Cell -> CellState -> Element Msg
+viewCell sheet cell state =
     let
         labelEl =
             text (cellLabel cell)
     in
     case cell of
         EmptyCell _ ->
-            Theme.emptyCell sheet.theme (Sheet.cellWindow cell) <| labelEl
+            Theme.emptyCell sheet.theme (Sheet.cellWindow cell) state <| labelEl
 
         ReservedCell _ ->
-            Theme.reservedCell sheet.theme (Sheet.cellWindow cell) <| labelEl
+            Theme.reservedCell sheet.theme (Sheet.cellWindow cell) state <| labelEl
 
 
 cellLabel : Cell -> String
