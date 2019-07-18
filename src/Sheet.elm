@@ -1,4 +1,4 @@
-module Sheet exposing (Cell(..), CellState, Column(..), Sheet, SubColumn, cellWindow, make)
+module Sheet exposing (Cell(..), CellRef, CellState, Column(..), ColumnRef, Msg(..), Sheet, SubColumn, cellWindow, make, makeCellRef, makeColumnRef, update)
 
 import Duration exposing (Duration)
 import List.Extra
@@ -45,6 +45,28 @@ type Cell
     | ReservedCell Reservation
 
 
+type Msg
+    = OnCellClicked Cell CellRef
+
+
+type ColumnRef
+    = ColumnRef Int
+
+
+makeColumnRef : Int -> ColumnRef
+makeColumnRef =
+    ColumnRef
+
+
+type CellRef
+    = CellRef Int Int Int
+
+
+makeCellRef : ColumnRef -> Int -> Int -> CellRef
+makeCellRef (ColumnRef colIndex) subColIndex cellIndex =
+    CellRef colIndex subColIndex cellIndex
+
+
 make : Theme -> Int -> TimeWindow -> List Schedule -> Sheet
 make theme slotCount window schedules =
     let
@@ -72,6 +94,36 @@ make theme slotCount window schedules =
     }
 
 
+update : Msg -> Sheet -> ( Sheet, Cmd Msg )
+update msg sheet =
+    case msg of
+        OnCellClicked cell cellRef ->
+            ( sheet |> onCellClicked cell cellRef, Cmd.none )
+
+
+onCellClicked : Cell -> CellRef -> Sheet -> Sheet
+onCellClicked cell (CellRef colIndex subColIndex cellIndex) sheet =
+    { sheet
+        | columns =
+            sheet.columns
+                |> List.Extra.updateAt colIndex
+                    (\column ->
+                        case column of
+                            ResourceColumn col ->
+                                ResourceColumn
+                                    { col
+                                        | subcolumns =
+                                            col.subcolumns
+                                                |> List.Extra.updateAt subColIndex
+                                                    (Selectable.choose cell selected)
+                                    }
+
+                            TimeColumn col ->
+                                TimeColumn col
+                    )
+    }
+
+
 makeTimeColumn : List TimeWindow -> Column
 makeTimeColumn slots =
     TimeColumn { slots = slots }
@@ -96,7 +148,7 @@ makeSubcolumns window reservations =
         |> List.reverse
         -- Make each sub-column continuous by filling gaps with empty cells
         |> List.map
-            (Selectable.fromList { selected = True } << fillInGaps window << List.map ReservedCell << Schedule.sortReservations)
+            (Selectable.fromList { selected = False } << fillInGaps window << List.map ReservedCell << Schedule.sortReservations)
 
 
 makeCell : Posix -> Duration -> Cell

@@ -2,9 +2,9 @@ module Util.Selectable exposing
     ( Selectable
     , fromList, append, cons, toList
     , choose, chooseIf, first, current, prior, discard, isCurrent, undo, any
-    , map, mapCurrent
+    , map, mapWithState, mapCurrent, indexedMap, indexedMapWithState
     , filter, removeIf, updateIf, head
-    , deselect, mapWithState
+    , deselect
     )
 
 {-| This module implements a list with selectable elements. It's similar to zippers
@@ -61,7 +61,7 @@ single-selection mode.
 
 # Mapping
 
-@docs map, mapCurrent
+@docs map, mapWithState, mapCurrent, indexedMap, indexedMapWithState
 
 
 # Manipulation
@@ -232,7 +232,7 @@ undo : Lens s Bool -> Selectable s a -> Selectable s a
 undo lens list =
     list
         |> mapElems
-            (\element ->
+            (\_ element ->
                 { element
                     | state = copyState lens element.priorState element.state
                     , priorState = copyState lens element.state element.priorState
@@ -263,8 +263,36 @@ map : (a -> b) -> Selectable s a -> Selectable s b
 map f list =
     list
         |> mapElems
-            (\{ value, state, priorState } ->
+            (\_ { value, state, priorState } ->
                 { value = f value
+                , state = state
+                , priorState = priorState
+                }
+            )
+
+
+{-| Apply the function to index of every element and the element itself in the selectable list.
+-}
+indexedMap : (Int -> a -> b) -> Selectable s a -> Selectable s b
+indexedMap f list =
+    list
+        |> mapElems
+            (\index { value, state, priorState } ->
+                { value = f index value
+                , state = state
+                , priorState = priorState
+                }
+            )
+
+
+{-| Apply the function to index of every element in the selectable list, element itself and its state.
+-}
+indexedMapWithState : (Int -> a -> s -> b) -> Selectable s a -> Selectable s b
+indexedMapWithState f list =
+    list
+        |> mapElems
+            (\index { value, state, priorState } ->
+                { value = f index value state
                 , state = state
                 , priorState = priorState
                 }
@@ -277,7 +305,7 @@ mapWithState : (a -> s -> b) -> Selectable s a -> Selectable s b
 mapWithState f list =
     list
         |> mapElems
-            (\{ value, state, priorState } ->
+            (\_ { value, state, priorState } ->
                 { value = f value state
                 , state = state
                 , priorState = priorState
@@ -291,7 +319,7 @@ mapCurrent : (a -> a) -> Lens s Bool -> Selectable s a -> Selectable s a
 mapCurrent f lens list =
     list
         |> mapElems
-            (\element ->
+            (\_ element ->
                 if lens.get element.state then
                     { value = f element.value
                     , state = element.state
@@ -347,12 +375,12 @@ head =
 --
 
 
-mapElems : (Elem s a -> Elem s b) -> Selectable s a -> Selectable s b
+mapElems : (Int -> Elem s a -> Elem s b) -> Selectable s a -> Selectable s b
 mapElems f list =
     let
         newItems =
             list.elements
-                |> List.map f
+                |> List.indexedMap f
     in
     { elements = newItems
     , defaultState = list.defaultState
@@ -363,7 +391,7 @@ unsafeChooseSingle : Maybe a -> Lens s Bool -> Selectable s a -> Selectable s a
 unsafeChooseSingle x lens list =
     list
         |> mapElems
-            (\element ->
+            (\_ element ->
                 { element
                     | state = lens.set (Just element.value == x) element.state
                     , priorState = copyState lens element.state element.priorState
@@ -375,7 +403,7 @@ unsafeDeselectAll : Lens s Bool -> Selectable s a -> Selectable s a
 unsafeDeselectAll lens list =
     list
         |> mapElems
-            (\element ->
+            (\_ element ->
                 { element
                     | state = lens.set False element.state
                     , priorState = copyState lens element.state element.priorState

@@ -13,7 +13,7 @@ import Iso8601
 import List.Extra
 import Maybe.Extra
 import Schedule exposing (Reservation(..), ReservationId(..), Resource, ResourceId(..), Schedule, mapReservations, newResource, newSchedule)
-import Sheet exposing (Cell(..), CellState, Column(..), Sheet, SubColumn)
+import Sheet exposing (Cell(..), CellRef, CellState, Column(..), ColumnRef, Sheet, SubColumn)
 import Theme
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow, make)
@@ -25,7 +25,8 @@ type Page
 
 
 type Msg
-    = NoOp
+    = SheetMsg Sheet.Msg
+    | NoOp
 
 
 type alias Model =
@@ -89,7 +90,14 @@ subscriptions model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        _ ->
+        SheetMsg sheetMsg ->
+            let
+                ( updatedSheet, cmd ) =
+                    Sheet.update sheetMsg model.sheet
+            in
+            ( { model | sheet = updatedSheet }, Cmd.map SheetMsg cmd )
+
+        NoOp ->
             ( model, Cmd.none )
 
 
@@ -101,28 +109,34 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "elm-resource"
     , body =
-        [ layout [] <| viewSheet model.sheet
+        [ (layout [] <| viewSheet model.sheet)
+            |> Html.map SheetMsg
         ]
     }
 
 
-viewSheet : Sheet -> Element Msg
+viewSheet : Sheet -> Element Sheet.Msg
 viewSheet sheet =
     Theme.sheetFrame sheet.theme <|
-        List.map (viewColumn sheet) sheet.columns
+        (sheet.columns
+            |> List.indexedMap
+                (\i column ->
+                    viewColumn sheet (Sheet.makeColumnRef i) column
+                )
+        )
 
 
-viewColumn : Sheet -> Column -> Element Msg
-viewColumn sheet col =
+viewColumn : Sheet -> ColumnRef -> Column -> Element Sheet.Msg
+viewColumn sheet colRef col =
     case col of
         TimeColumn { slots } ->
             viewTimeColumn sheet slots
 
         ResourceColumn { resource, subcolumns } ->
-            viewResourceColumn sheet resource subcolumns
+            viewResourceColumn sheet colRef resource subcolumns
 
 
-viewTimeColumn : Sheet -> List TimeWindow -> Element Msg
+viewTimeColumn : Sheet -> List TimeWindow -> Element Sheet.Msg
 viewTimeColumn sheet slots =
     let
         slotRows =
@@ -133,8 +147,8 @@ viewTimeColumn sheet slots =
     Theme.timeColumn sheet.theme "Czas" slotRows
 
 
-viewResourceColumn : Sheet -> Resource -> List SubColumn -> Element Msg
-viewResourceColumn sheet resource subcolumns =
+viewResourceColumn : Sheet -> ColumnRef -> Resource -> List SubColumn -> Element Sheet.Msg
+viewResourceColumn sheet colRef resource subcolumns =
     let
         title =
             Schedule.getResourceName resource
@@ -142,22 +156,33 @@ viewResourceColumn sheet resource subcolumns =
     Theme.resourceColumn sheet.theme
         title
         (subcolumns
-            |> List.map (Selectable.toList << Selectable.mapWithState (viewCell sheet))
+            |> List.indexedMap
+                (\subColIndex subcolumn ->
+                    subcolumn
+                        |> Selectable.indexedMapWithState
+                            (\cellIndex cell ->
+                                viewCell sheet (Sheet.makeCellRef colRef subColIndex cellIndex) cell
+                            )
+                        |> Selectable.toList
+                )
         )
 
 
-viewCell : Sheet -> Cell -> CellState -> Element Msg
-viewCell sheet cell state =
+viewCell : Sheet -> CellRef -> Cell -> CellState -> Element Sheet.Msg
+viewCell sheet cellRef cell state =
     let
         labelEl =
-            text (cellLabel cell)
+            text <| cellLabel cell ++ " " ++ Debug.toString cellRef ++ " " ++ Debug.toString state
+
+        onClick =
+            Sheet.OnCellClicked cell cellRef
     in
     case cell of
         EmptyCell _ ->
-            Theme.emptyCell sheet.theme (Sheet.cellWindow cell) state <| labelEl
+            Theme.emptyCell sheet.theme (Sheet.cellWindow cell) state labelEl onClick
 
         ReservedCell _ ->
-            Theme.reservedCell sheet.theme (Sheet.cellWindow cell) state <| labelEl
+            Theme.reservedCell sheet.theme (Sheet.cellWindow cell) state labelEl onClick
 
 
 cellLabel : Cell -> String
@@ -166,8 +191,7 @@ cellLabel cell =
         w =
             Sheet.cellWindow cell
     in
-    -- (TimeWindow.getStart w |> formatTime) ++ " - " ++ (TimeWindow.getEnd w |> formatTime)
-    ""
+    (TimeWindow.getStart w |> formatTime) ++ " - " ++ (TimeWindow.getEnd w |> formatTime)
 
 
 formatTime : Posix -> String

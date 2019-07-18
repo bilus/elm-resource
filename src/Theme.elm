@@ -5,6 +5,7 @@ import Color
 import Duration exposing (Duration)
 import Element exposing (..)
 import Element.Background as Background
+import Element.Events as Events
 import Element.Font as Font exposing (Font)
 import Html.Attributes exposing (style)
 import TimeWindow exposing (TimeWindow)
@@ -157,28 +158,32 @@ timeCell theme window =
         [ el [ alignRight, centerY ] <| text <| TimeWindow.formatStart window ]
 
 
-emptyCell : Theme -> TimeWindow -> CellState s -> Element msg -> Element msg
-emptyCell theme window state elem =
+emptyCell : Theme -> TimeWindow -> CellState s -> Element msg -> msg -> Element msg
+emptyCell theme window state elem onClickCell =
     let
         attrs =
             []
     in
-    cell theme attrs window elem
+    cell theme attrs window elem onClickCell
 
 
-reservedCell : Theme -> TimeWindow -> CellState s -> Element msg -> Element msg
-reservedCell theme window state elem =
+reservedCell : Theme -> TimeWindow -> CellState s -> Element msg -> msg -> Element msg
+reservedCell theme window { selected } elem onClickCell =
     let
         attrs =
-            [ Background.color theme.cells.backgroundColor
+            [ if selected then
+                Background.color <| rgba 0.9 0.4 0.3 0.1
+
+              else
+                Background.color theme.cells.backgroundColor
             ]
     in
-    cell theme attrs window elem
+    cell theme attrs window elem onClickCell
 
 
-cell : Theme -> List (Attribute msg) -> TimeWindow -> Element msg -> Element msg
-cell theme attrs window elem =
-    row [ paddingXY 0 1, width fill, height (cellHeight theme window) ]
+cell : Theme -> List (Attribute msg) -> TimeWindow -> Element msg -> msg -> Element msg
+cell theme attrs window elem onClickCell =
+    row [ paddingXY 0 1, width fill, height (cellHeight theme window), Events.onClick onClickCell ]
         [ el ([ width fill, height fill, Font.size 12 ] ++ attrs) <| elem ]
 
 
