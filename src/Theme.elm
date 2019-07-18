@@ -100,17 +100,23 @@ sheetFrame theme =
 timeColumn : Theme -> String -> List (Element msg) -> Element msg
 timeColumn theme title elements =
     let
+        titleElems =
+            [ el [ alignRight, centerY ] <| text title ]
+
         topPadding =
             toFloat theme.defaultCell.heightPx / 2 |> round
     in
-    column [ width fill, height fill, inFront <| stickyHeader theme title ] <|
-        stickyHeader theme title
+    column [ width fill, height fill, inFront <| stickyHeader theme titleElems ] <|
+        stickyHeader theme titleElems
             :: elements
 
 
 resourceColumn : Theme -> String -> List (List (Element msg)) -> Element msg
 resourceColumn theme title elementGrid =
     let
+        titleElems =
+            [ el [ centerX, centerY ] <| text title ]
+
         subcolumnsEl =
             row [ width fill, height fill, paddingXY 1 0 ] <|
                 List.map subcolumnEl elementGrid
@@ -118,13 +124,17 @@ resourceColumn theme title elementGrid =
         subcolumnEl els =
             column [ width fill, height fill ] <| els
     in
-    column [ width fill, height fill, inFront <| stickyHeader theme title ] <|
-        stickyHeader theme title
+    column [ width fill, height fill, inFront <| stickyHeader theme titleElems ] <|
+        stickyHeader theme titleElems
             :: [ subcolumnsEl ]
 
 
-stickyHeader : Theme -> String -> Element msg
-stickyHeader theme title =
+stickyHeader : Theme -> List (Element msg) -> Element msg
+stickyHeader theme elems =
+    let
+        sticky =
+            [ style "position" "sticky", style "top" "0" ] |> List.map htmlAttribute
+    in
     row
         ([ width fill
          , Background.color <| theme.header.backgroundColor
@@ -132,13 +142,7 @@ stickyHeader theme title =
          ]
             ++ sticky
         )
-        [ el [ centerX ] <| text title
-        ]
-
-
-sticky : List (Attribute msg)
-sticky =
-    List.map htmlAttribute [ style "position" "sticky", style "top" "0" ]
+        elems
 
 
 timeCell : Theme -> TimeWindow -> Element msg
