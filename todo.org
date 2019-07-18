@@ -8,12 +8,12 @@
 
 * DONE Manager can see the reservation table
   CLOSED: [2019-07-16 Tue 13:16]
+* TODO Sheet is themed
+* TODO Manager can add notes to a selected reservation
+* TODO Manager can resize a reservation to change its time
 * TODO Manager can click an empty cell to add a new reservation
 * TODO Manager can click an allocated cell, potentially splitting the reservation
 * Manager can select multiple cells in the same column to merge them
-* Manager can resize a reservation to change its time
-* Manager can add notes to a reservation
-
 * Manager can select a resource column so he can delete it
 * Manager can select any element of the table to add another resource column
 * Manager can rename a resource column

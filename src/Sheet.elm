@@ -11,7 +11,6 @@ import Util.List exposing (slice, window2)
 
 type alias Sheet =
     { window : TimeWindow
-    , pixelsPerSecond : Float
     , columns : List Column
     , theme : Theme
     }
@@ -22,8 +21,8 @@ type alias SubColumn =
 
 
 type Cell
-    = CellAvailable TimeWindow
-    | CellReserved Reservation
+    = EmptyCell TimeWindow
+    | ReservedCell Reservation
 
 
 type Column
@@ -58,7 +57,6 @@ make theme slotCount window schedules =
                 |> List.map (makeResourceColumn window)
     in
     { window = window
-    , pixelsPerSecond = pixelsPerSecond
     , columns = makeTimeColumn slots :: resourceColumns
     , theme = theme
     }
@@ -88,12 +86,12 @@ makeSubcolumns window reservations =
         |> List.reverse
         -- Make each sub-column continuous by filling gaps with empty cells
         |> List.map
-            (fillInGaps window << List.map CellReserved << Schedule.sortReservations)
+            (fillInGaps window << List.map ReservedCell << Schedule.sortReservations)
 
 
 makeCell : Posix -> Duration -> Cell
 makeCell start duration =
-    CellAvailable (TimeWindow.make start duration)
+    EmptyCell (TimeWindow.make start duration)
 
 
 fillInGaps : TimeWindow -> List Cell -> List Cell
@@ -125,10 +123,10 @@ fillInGaps window cells =
 cellWindow : Cell -> TimeWindow
 cellWindow cell =
     case cell of
-        CellAvailable window ->
+        EmptyCell window ->
             window
 
-        CellReserved reservation ->
+        ReservedCell reservation ->
             Schedule.getWindow reservation
 
 
@@ -142,7 +140,7 @@ gapFiller c1 c2 =
             cellWindow c2
     in
     TimeWindow.gap w1 w2
-        |> Maybe.map CellAvailable
+        |> Maybe.map EmptyCell
 
 
 cmpLength : List a -> List b -> Order

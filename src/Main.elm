@@ -61,8 +61,12 @@ sampleSchedule =
 
 init : Flags -> ( Model, Cmd Msg )
 init _ =
+    let
+        window =
+            TimeWindow.make (Time.millisToPosix 0) (Duration.hours 24)
+    in
     ( { currPage = InputPage
-      , sheet = Sheet.make Theme.defaultTheme 48 (TimeWindow.make (Time.millisToPosix 0) (Duration.hours 24)) sampleSchedule
+      , sheet = Sheet.make (Theme.defaultTheme 48 window) 48 window sampleSchedule
       }
     , Cmd.none
     )
@@ -94,7 +98,7 @@ update msg model =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "VisExp"
+    { title = "elm-resource"
     , body =
         [ layout [] <| viewSheet model.sheet
         ]
@@ -103,27 +107,8 @@ view model =
 
 viewSheet : Sheet -> Element Msg
 viewSheet sheet =
-    row
-        [ width fill
-        , height fill
-
-        {- Element.explain Debug.todo -}
-        ]
-    <|
+    Theme.sheetFrame sheet.theme <|
         List.map (viewColumn sheet) sheet.columns
-
-
-stickyHeader : String -> Element Msg
-stickyHeader title =
-    row
-        ([ width fill
-         , Background.color <| rgba 0.8 0.8 0.8 0.8
-         , padding 3
-         ]
-            ++ sticky
-        )
-        [ el [ centerX ] <| text title
-        ]
 
 
 viewColumn : Sheet -> Column -> Element Msg
@@ -139,78 +124,39 @@ viewColumn sheet col =
 viewTimeColumn : Sheet -> List TimeWindow -> Element Msg
 viewTimeColumn sheet slots =
     let
-        topPadding =
-            toFloat sheet.theme.defaultCell.heightPx / 2 |> round
-
         slotRows =
-            row [ width fill, height <| px topPadding ]
-                []
-                :: (slots
-                        |> List.drop 1
-                        |> List.map (viewSlotRow sheet)
-                   )
+            slots
+                |> List.drop 1
+                |> List.map (Theme.timeCell sheet.theme)
     in
-    column [ width fill, height fill, inFront <| stickyHeader "Czas" ] <|
-        stickyHeader "Czas"
-            :: slotRows
-
-
-edges =
-    { top = 0
-    , right = 0
-    , bottom = 0
-    , left = 0
-    }
-
-
-viewSlotRow : Sheet -> TimeWindow -> Element Msg
-viewSlotRow sheet window =
-    row [ width fill, height (cellHeight sheet window) ] <|
-        [ el [ alignRight, centerY ] <| text <| TimeWindow.formatStart window ]
+    Theme.timeColumn sheet.theme "Czas" slotRows
 
 
 viewResourceColumn : Sheet -> Resource -> List SubColumn -> Element Msg
 viewResourceColumn sheet resource subcolumns =
-    column [ width fill, height fill, inFront <| viewHeaderRow sheet resource ] <|
-        viewHeaderRow sheet resource
-            :: [ viewLayout sheet subcolumns ]
-
-
-viewHeaderRow : Sheet -> Resource -> Element Msg
-viewHeaderRow sheet resource =
-    stickyHeader <| Schedule.getResourceName resource
-
-
-viewLayout : Sheet -> List SubColumn -> Element Msg
-viewLayout sheet subcolumns =
-    row [ width fill, height fill, paddingXY 1 0 ] <|
-        viewSubColumns sheet subcolumns
-
-
-viewSubColumns : Sheet -> List SubColumn -> List (Element Msg)
-viewSubColumns sheet subcols =
-    List.map (viewSubColumn sheet) subcols
-
-
-viewSubColumn : Sheet -> SubColumn -> Element Msg
-viewSubColumn sheet subcol =
-    column [ width fill, height fill ] <|
-        List.map (viewCellRow sheet) subcol
-
-
-viewCellRow : Sheet -> Cell -> Element Msg
-viewCellRow sheet cell =
     let
-        attrs =
-            case cell of
-                CellAvailable _ ->
-                    []
-
-                CellReserved _ ->
-                    [ Background.color (rgb 0.5 0.8 0.8) ]
+        title =
+            Schedule.getResourceName resource
     in
-    row [ paddingXY 0 1, width fill, height (cellHeight sheet (Sheet.cellWindow cell)) ]
-        [ el ([ width fill, height fill, Font.size 12 ] ++ attrs) <| text (cellLabel cell) ]
+    Theme.resourceColumn sheet.theme
+        title
+        (subcolumns
+            |> List.map (List.map (viewCell sheet))
+        )
+
+
+viewCell : Sheet -> Cell -> Element Msg
+viewCell sheet cell =
+    let
+        labelEl =
+            text (cellLabel cell)
+    in
+    case cell of
+        EmptyCell _ ->
+            Theme.emptyCell sheet.theme (Sheet.cellWindow cell) <| labelEl
+
+        ReservedCell _ ->
+            Theme.reservedCell sheet.theme (Sheet.cellWindow cell) <| labelEl
 
 
 cellLabel : Cell -> String
@@ -239,21 +185,6 @@ formatTime t =
                 |> String.padLeft 2 '0'
     in
     hours ++ ":" ++ minutes
-
-
-cellHeight : Sheet -> TimeWindow -> Length
-cellHeight sheet window =
-    window
-        |> TimeWindow.getDuration
-        |> Duration.inSeconds
-        |> (*) sheet.pixelsPerSecond
-        |> round
-        |> px
-
-
-sticky : List (Attribute msg)
-sticky =
-    List.map htmlAttribute [ style "position" "sticky", style "top" "0" ]
 
 
 main : Program Flags Model Msg

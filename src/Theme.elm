@@ -1,21 +1,25 @@
-module Theme exposing (Theme, defaultTheme)
+module Theme exposing (Theme, defaultTheme, emptyCell, reservedCell, resourceColumn, sheetFrame, timeCell, timeColumn)
 
 import Array exposing (Array)
 import Color
-import Element exposing (Color, rgba)
+import Duration exposing (Duration)
+import Element exposing (..)
+import Element.Background as Background
 import Element.Font as Font exposing (Font)
+import Html.Attributes exposing (style)
+import TimeWindow exposing (TimeWindow)
 
 
 type alias Theme =
-    { defaultCell : { heightPx : Int, widthPx : Int }
+    { defaultCell : { heightPx : Int, widthPx : Int, pixelsPerSecond : Float }
     , columns : Array { bgColor : Color }
-    , header : { fontFamily : List Font, fontSize : Int }
-    , cells : { fontFamily : List Font, fontSize : Int }
+    , header : { fontFamily : List Font, fontSize : Int, backgroundColor : Color, textColor : Color }
+    , cells : { fontFamily : List Font, fontSize : Int, backgroundColor : Color, textColor : Color }
     }
 
 
-defaultTheme : Theme
-defaultTheme =
+defaultTheme : Int -> TimeWindow -> Theme
+defaultTheme slotCount window =
     let
         columns =
             [ Color.orange
@@ -40,11 +44,39 @@ defaultTheme =
                 |> List.map toColor
                 |> List.map (\color -> { bgColor = color })
                 |> Array.fromList
+
+        defaultCellHeight =
+            30
+
+        windowDuration =
+            window
+                |> TimeWindow.getDuration
+                |> Duration.inSeconds
+
+        cellDuration =
+            windowDuration / toFloat slotCount
+
+        pixelsPerSecond =
+            toFloat defaultCellHeight / cellDuration
     in
-    { defaultCell = { heightPx = 30, widthPx = 200 }
+    { defaultCell =
+        { heightPx = defaultCellHeight
+        , widthPx = 200
+        , pixelsPerSecond = pixelsPerSecond
+        }
     , columns = columns
-    , header = { fontFamily = [ Font.typeface "Helvetica" ], fontSize = 20 }
-    , cells = { fontFamily = [ Font.typeface "Helvetica" ], fontSize = 20 }
+    , header =
+        { fontFamily = [ Font.typeface "Helvetica" ]
+        , fontSize = 20
+        , backgroundColor = rgba 0.8 0.8 0.8 0.8
+        , textColor = rgb 0 0 0
+        }
+    , cells =
+        { fontFamily = [ Font.typeface "Helvetica" ]
+        , fontSize = 20
+        , backgroundColor = Color.lightOrange |> toColor
+        , textColor = Color.darkBrown |> toColor
+        }
     }
 
 
@@ -55,3 +87,98 @@ toColor color =
             Color.toRgba color
     in
     rgba red green blue alpha
+
+
+sheetFrame : Theme -> List (Element msg) -> Element msg
+sheetFrame theme =
+    row
+        [ width fill
+        , height fill
+        ]
+
+
+timeColumn : Theme -> String -> List (Element msg) -> Element msg
+timeColumn theme title elements =
+    let
+        topPadding =
+            toFloat theme.defaultCell.heightPx / 2 |> round
+    in
+    column [ width fill, height fill, inFront <| stickyHeader theme title ] <|
+        stickyHeader theme title
+            :: elements
+
+
+resourceColumn : Theme -> String -> List (List (Element msg)) -> Element msg
+resourceColumn theme title elementGrid =
+    let
+        subcolumnsEl =
+            row [ width fill, height fill, paddingXY 1 0 ] <|
+                List.map subcolumnEl elementGrid
+
+        subcolumnEl els =
+            column [ width fill, height fill ] <| els
+    in
+    column [ width fill, height fill, inFront <| stickyHeader theme title ] <|
+        stickyHeader theme title
+            :: [ subcolumnsEl ]
+
+
+stickyHeader : Theme -> String -> Element msg
+stickyHeader theme title =
+    row
+        ([ width fill
+         , Background.color <| theme.header.backgroundColor
+         , padding 3
+         ]
+            ++ sticky
+        )
+        [ el [ centerX ] <| text title
+        ]
+
+
+sticky : List (Attribute msg)
+sticky =
+    List.map htmlAttribute [ style "position" "sticky", style "top" "0" ]
+
+
+timeCell : Theme -> TimeWindow -> Element msg
+timeCell theme window =
+    row
+        [ width fill, height (cellHeight theme window) ]
+    <|
+        [ el [ alignRight, centerY ] <| text <| TimeWindow.formatStart window ]
+
+
+emptyCell : Theme -> TimeWindow -> Element msg -> Element msg
+emptyCell theme window elem =
+    let
+        attrs =
+            []
+    in
+    cell theme attrs window elem
+
+
+reservedCell : Theme -> TimeWindow -> Element msg -> Element msg
+reservedCell theme window elem =
+    let
+        attrs =
+            [ Background.color theme.cells.backgroundColor
+            ]
+    in
+    cell theme attrs window elem
+
+
+cell : Theme -> List (Attribute msg) -> TimeWindow -> Element msg -> Element msg
+cell theme attrs window elem =
+    row [ paddingXY 0 1, width fill, height (cellHeight theme window) ]
+        [ el ([ width fill, height fill, Font.size 12 ] ++ attrs) <| elem ]
+
+
+cellHeight : Theme -> TimeWindow -> Length
+cellHeight theme window =
+    window
+        |> TimeWindow.getDuration
+        |> Duration.inSeconds
+        |> (*) theme.defaultCell.pixelsPerSecond
+        |> round
+        |> px
