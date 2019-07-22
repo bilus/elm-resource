@@ -8,7 +8,10 @@ import Element.Background as Background
 import Element.Events as Events
 import Element.Font as Font exposing (Font)
 import Html.Attributes exposing (style)
+import Schedule
+import Sheet exposing (Sheet)
 import TimeWindow exposing (TimeWindow)
+import Util.Selectable as Selectable
 
 
 type alias Theme =
@@ -85,6 +88,16 @@ defaultTheme slotCount window =
     }
 
 
+cellHeight : Theme -> TimeWindow -> Length
+cellHeight theme window =
+    window
+        |> TimeWindow.getDuration
+        |> Duration.inSeconds
+        |> (*) theme.defaultCell.pixelsPerSecond
+        |> round
+        |> px
+
+
 toColor : Color.Color -> Color
 toColor color =
     let
@@ -94,33 +107,75 @@ toColor color =
     rgba red green blue alpha
 
 
-sheetFrame : Theme -> List (Element msg) -> Element msg
-sheetFrame theme =
+sheetFrame : Theme -> Sheet -> Element Sheet.Msg
+sheetFrame theme sheet =
+    let
+        cols =
+            sheet.columns
+                |> List.indexedMap
+                    (\i column ->
+                        anyColumn theme sheet (Sheet.makeColumnRef i) column
+                    )
+    in
     row
         [ width fill
         , height fill
         ]
+        cols
 
 
-timeColumn : Theme -> String -> List (Element msg) -> Element msg
-timeColumn theme title elements =
+anyColumn : Theme -> Sheet -> Sheet.ColumnRef -> Sheet.Column -> Element Sheet.Msg
+anyColumn theme sheet colRef col =
+    case col of
+        Sheet.TimeColumn { slots } ->
+            timeColumn theme slots
+
+        Sheet.ResourceColumn { resource, subcolumns } ->
+            resourceColumn theme sheet colRef resource subcolumns
+
+
+timeColumn : Theme -> List TimeWindow -> Element Sheet.Msg
+timeColumn theme slots =
     let
+        title =
+            "Czas"
+
         titleElems =
             [ el [ alignRight, centerY ] <| text title ]
 
         topPadding =
             toFloat theme.defaultCell.heightPx / 2 |> round
+
+        slotRows =
+            slots
+                |> List.drop 1
+                |> List.map (timeCell theme)
     in
     column [ width fill, height fill, inFront <| stickyHeader theme titleElems ] <|
         stickyHeader theme titleElems
-            :: elements
+            :: slotRows
 
 
-resourceColumn : Theme -> String -> List (List (Element msg)) -> Element msg
-resourceColumn theme title elementGrid =
+resourceColumn : Theme -> Sheet -> Sheet.ColumnRef -> Schedule.Resource -> List Sheet.SubColumn -> Element Sheet.Msg
+resourceColumn theme sheet colRef resource subcolumns =
     let
+        title =
+            Schedule.getResourceName resource
+
         titleElems =
             [ el [ centerX, centerY ] <| text title ]
+
+        elementGrid =
+            subcolumns
+                |> List.indexedMap
+                    (\subColIndex subcolumn ->
+                        subcolumn
+                            |> Selectable.indexedMapWithState
+                                (\cellIndex cell ->
+                                    anyCell theme sheet (Sheet.makeCellRef colRef subColIndex cellIndex) cell
+                                )
+                            |> Selectable.toList
+                    )
 
         subcolumnsEl =
             row [ width fill, height fill, paddingXY 1 0 ] <|
@@ -134,7 +189,25 @@ resourceColumn theme title elementGrid =
             :: [ subcolumnsEl ]
 
 
-stickyHeader : Theme -> List (Element msg) -> Element msg
+anyCell : Theme -> Sheet -> Sheet.CellRef -> Sheet.Cell -> Sheet.CellState -> Element Sheet.Msg
+anyCell theme sheet cellRef cell state =
+    let
+        labelEl =
+            text ""
+
+        --++ " " ++ Debug.toString cellRef ++ " " ++ Debug.toString state
+        onClick =
+            Sheet.CellClicked cell cellRef
+    in
+    case cell of
+        Sheet.EmptyCell _ ->
+            emptyCell theme (Sheet.cellWindow cell) state labelEl onClick
+
+        Sheet.ReservedCell _ ->
+            reservedCell theme (Sheet.cellWindow cell) state labelEl onClick
+
+
+stickyHeader : Theme -> List (Element Sheet.Msg) -> Element Sheet.Msg
 stickyHeader theme elems =
     let
         sticky =
@@ -150,7 +223,7 @@ stickyHeader theme elems =
         elems
 
 
-timeCell : Theme -> TimeWindow -> Element msg
+timeCell : Theme -> TimeWindow -> Element Sheet.Msg
 timeCell theme window =
     row
         [ width fill, height (cellHeight theme window) ]
@@ -158,16 +231,16 @@ timeCell theme window =
         [ el [ alignRight, centerY ] <| text <| TimeWindow.formatStart window ]
 
 
-emptyCell : Theme -> TimeWindow -> CellState s -> Element msg -> msg -> Element msg
+emptyCell : Theme -> TimeWindow -> CellState s -> Element Sheet.Msg -> Sheet.Msg -> Element Sheet.Msg
 emptyCell theme window state elem onClickCell =
     let
         attrs =
             []
     in
-    cell theme attrs window elem onClickCell
+    renderCell theme attrs window elem onClickCell
 
 
-reservedCell : Theme -> TimeWindow -> CellState s -> Element msg -> msg -> Element msg
+reservedCell : Theme -> TimeWindow -> CellState s -> Element Sheet.Msg -> Sheet.Msg -> Element Sheet.Msg
 reservedCell theme window { selected } elem onClickCell =
     let
         attrs =
@@ -183,25 +256,15 @@ reservedCell theme window { selected } elem onClickCell =
                         []
                    )
     in
-    cell theme attrs window elem onClickCell
+    renderCell theme attrs window elem onClickCell
 
 
-handle : Theme -> Element msg
+handle : Theme -> Element Sheet.Msg
 handle theme =
     el [ centerX ] <| text "o"
 
 
-cell : Theme -> List (Attribute msg) -> TimeWindow -> Element msg -> msg -> Element msg
-cell theme attrs window elem onClickCell =
+renderCell : Theme -> List (Attribute Sheet.Msg) -> TimeWindow -> Element Sheet.Msg -> Sheet.Msg -> Element Sheet.Msg
+renderCell theme attrs window elem onClickCell =
     row [ paddingXY 0 1, width fill, height (cellHeight theme window), Events.onClick onClickCell ]
         [ el ([ width fill, height fill, Font.size 12 ] ++ attrs) <| elem ]
-
-
-cellHeight : Theme -> TimeWindow -> Length
-cellHeight theme window =
-    window
-        |> TimeWindow.getDuration
-        |> Duration.inSeconds
-        |> (*) theme.defaultCell.pixelsPerSecond
-        |> round
-        |> px
