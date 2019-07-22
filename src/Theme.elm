@@ -189,22 +189,14 @@ resourceColumn theme sheet colRef resource subcolumns =
             :: [ subcolumnsEl ]
 
 
-anyCell : Theme -> Sheet -> Sheet.CellRef -> Sheet.Cell -> Sheet.CellState -> Element Sheet.Msg
+anyCell : Theme -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
 anyCell theme sheet cellRef cell state =
-    let
-        labelEl =
-            text ""
-
-        --++ " " ++ Debug.toString cellRef ++ " " ++ Debug.toString state
-        onClick =
-            Sheet.CellClicked cell cellRef
-    in
     case cell of
         Sheet.EmptyCell _ ->
-            emptyCell theme (Sheet.cellWindow cell) state labelEl onClick
+            emptyCell theme cellRef cell state
 
         Sheet.ReservedCell _ ->
-            reservedCell theme (Sheet.cellWindow cell) state labelEl onClick
+            reservedCell theme cellRef cell state
 
 
 stickyHeader : Theme -> List (Element Sheet.Msg) -> Element Sheet.Msg
@@ -231,20 +223,21 @@ timeCell theme window =
         [ el [ alignRight, centerY ] <| text <| TimeWindow.formatStart window ]
 
 
-emptyCell : Theme -> TimeWindow -> CellState s -> Element Sheet.Msg -> Sheet.Msg -> Element Sheet.Msg
-emptyCell theme window state elem onClickCell =
+emptyCell : Theme -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
+emptyCell theme cellRef cell state =
     let
         attrs =
-            []
+            [ Events.onClick (Sheet.CellClicked cell cellRef) ]
     in
-    renderCell theme attrs window elem onClickCell
+    renderCell theme attrs <| Sheet.cellWindow cell
 
 
-reservedCell : Theme -> TimeWindow -> CellState s -> Element Sheet.Msg -> Sheet.Msg -> Element Sheet.Msg
-reservedCell theme window { selected } elem onClickCell =
+reservedCell : Theme -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
+reservedCell theme cellRef cell { selected } =
     let
         attrs =
             Background.color theme.cells.backgroundColor
+                :: Events.onClick (Sheet.CellClicked cell cellRef)
                 :: (if selected then
                         [ below <|
                             handle theme
@@ -256,7 +249,7 @@ reservedCell theme window { selected } elem onClickCell =
                         []
                    )
     in
-    renderCell theme attrs window elem onClickCell
+    renderCell theme attrs <| Sheet.cellWindow cell
 
 
 handle : Theme -> Element Sheet.Msg
@@ -264,7 +257,7 @@ handle theme =
     el [ centerX ] <| text "o"
 
 
-renderCell : Theme -> List (Attribute Sheet.Msg) -> TimeWindow -> Element Sheet.Msg -> Sheet.Msg -> Element Sheet.Msg
-renderCell theme attrs window elem onClickCell =
-    row [ paddingXY 0 1, width fill, height (cellHeight theme window), Events.onClick onClickCell ]
-        [ el ([ width fill, height fill, Font.size 12 ] ++ attrs) <| elem ]
+renderCell : Theme -> List (Attribute Sheet.Msg) -> TimeWindow -> Element Sheet.Msg
+renderCell theme attrs window =
+    row [ paddingXY 0 1, width fill, height (cellHeight theme window) ]
+        [ el ([ width fill, height fill, Font.size 12 ] ++ attrs) <| text "" ]
