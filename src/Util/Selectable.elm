@@ -4,7 +4,7 @@ module Util.Selectable exposing
     , choose, chooseIf, first, current, prior, discard, isCurrent, undo, any
     , map, mapWithState, mapCurrent, indexedMap, indexedMapWithState
     , filter, removeIf, updateIf, head
-    , deselect
+    , deselect, updateAt
     )
 
 {-| This module implements a list with selectable elements. It's similar to zippers
@@ -360,6 +360,21 @@ updateIf pred f list =
 removeIf : (a -> Bool) -> Selectable s a -> Selectable s a
 removeIf pred =
     filter (not << pred)
+
+
+{-| Applies the function to element at the given index
+-}
+updateAt : Int -> (a -> a) -> Selectable s a -> Selectable s a
+updateAt index f list =
+    list
+        |> indexedMap
+            (\i x ->
+                if i == index then
+                    f x
+
+                else
+                    x
+            )
 
 
 {-| Extract the first element of the selectable list.

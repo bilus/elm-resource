@@ -25,13 +25,13 @@ init =
     { dragged = Nothing, dropTarget = Nothing }
 
 
-start : State draggable droppable -> draggable -> State draggable droppable
-start state dragged =
+start : draggable -> State draggable droppable -> State draggable droppable
+start dragged state =
     { state | dragged = Just dragged }
 
 
-drag : State draggable droppable -> droppable -> State draggable droppable
-drag state dropTarget =
+drag : droppable -> State draggable droppable -> State draggable droppable
+drag dropTarget state =
     { state | dropTarget = Just dropTarget }
 
 
@@ -46,5 +46,10 @@ makeDraggable state config dragged elem =
 
 
 makeDroppable : State draggable droppable -> Config msg draggable droppable -> droppable -> Element msg -> Element msg
-makeDroppable state msgs dropTarget el =
-    Debug.todo "impl"
+makeDroppable state config dropTarget elem =
+    case state.dragged of
+        Just dragged ->
+            Element.el [ Element.width Element.fill, Element.height Element.fill, Events.onDragEnter (config.dragged dragged dropTarget) ] elem
+
+        Nothing ->
+            elem

@@ -15,6 +15,7 @@ type alias Sheet =
     { window : TimeWindow
     , columns : List Column
     , dragDropState : DragDrop.State Draggable Droppable
+    , slotCount : Int
     }
 
 
@@ -46,12 +47,12 @@ type Cell
 
 
 type Draggable
-    = CellStart CellRef
-    | CellEnd CellRef
+    = CellStart Cell CellRef
+    | CellEnd Cell CellRef
 
 
 type Droppable
-    = DroppableCell CellRef
+    = DroppableCell Cell CellRef
 
 
 dragDropConfig =
@@ -88,29 +89,68 @@ makeCellRef (ColumnRef colIndex) subColIndex cellIndex =
     CellRef colIndex subColIndex cellIndex
 
 
-type DropTarget
-    = OntoEmptyCell Cell CellRef
-
-
 make : Int -> TimeWindow -> List Schedule -> Sheet
 make slotCount window schedules =
+    { window = window
+    , columns = makeColumns slotCount window schedules
+    , dragDropState = DragDrop.init
+    , slotCount = slotCount
+    }
+
+
+recalc : Sheet -> Sheet
+recalc sheet =
+    let
+        resourceColumns =
+            sheet
+                |> getSchedules
+                |> List.map (makeResourceColumn sheet.window)
+    in
+    { sheet
+        | columns = makeColumns sheet.slotCount sheet.window (getSchedules sheet)
+    }
+
+
+makeColumns : Int -> TimeWindow -> List Schedule -> List Column
+makeColumns slotCount window schedules =
     let
         slots =
             TimeWindow.split slotCount window
-
-        duration =
-            List.head slots
-                |> Maybe.map (Duration.inSeconds << TimeWindow.getDuration)
-                |> Maybe.withDefault 0
 
         resourceColumns =
             schedules
                 |> List.map (makeResourceColumn window)
     in
-    { window = window
-    , columns = makeTimeColumn slots :: resourceColumns
-    , dragDropState = DragDrop.init
-    }
+    makeTimeColumn slots :: resourceColumns
+
+
+getSchedules : Sheet -> List Schedule
+getSchedules { columns } =
+    let
+        getSchedule column =
+            case column of
+                TimeColumn _ ->
+                    []
+
+                ResourceColumn { resource, subcolumns } ->
+                    subcolumns
+                        |> List.concatMap
+                            (List.concatMap
+                                (\cell ->
+                                    case cell of
+                                        EmptyCell _ ->
+                                            []
+
+                                        ReservedCell reservation ->
+                                            [ reservation ]
+                                )
+                                << Selectable.toList
+                            )
+                        |> Schedule.newSchedule resource
+                        |> List.singleton
+    in
+    columns
+        |> List.concatMap getSchedule
 
 
 update : Msg -> Sheet -> ( Sheet, Cmd Msg )
@@ -118,6 +158,12 @@ update msg sheet =
     case msg of
         CellClicked cell cellRef ->
             ( sheet |> onCellClicked cell cellRef, Cmd.none )
+
+        MoveStarted draggable ->
+            ( sheet |> onMoveStarted draggable, Cmd.none )
+
+        MoveTargetChanged draggable droppable ->
+            ( sheet |> onMoveTargetChanged draggable droppable |> recalc, Cmd.none )
 
         _ ->
             ( sheet, Cmd.none )
@@ -146,6 +192,65 @@ onCellClicked cell (CellRef colIndex subColIndex cellIndex) sheet =
     }
 
 
+onMoveStarted : Draggable -> Sheet -> Sheet
+onMoveStarted draggable sheet =
+    { sheet
+        | dragDropState = sheet.dragDropState |> DragDrop.start draggable
+    }
+
+
+onMoveTargetChanged : Draggable -> Droppable -> Sheet -> Sheet
+onMoveTargetChanged draggable droppable sheet =
+    let
+        updatedSheet =
+            case ( draggable, droppable ) of
+                ( CellStart _ cellRef, DroppableCell dropTarget _ ) ->
+                    sheet
+                        |> updateCell cellRef
+                            (\cell ->
+                                case cell of
+                                    ReservedCell reservation ->
+                                        reservation
+                                            |> Debug.log "before"
+                                            |> Schedule.moveReservation (dropTarget |> cellWindow |> TimeWindow.getStart)
+                                            |> Debug.log "after"
+                                            |> ReservedCell
+
+                                    EmptyCell window ->
+                                        EmptyCell window
+                            )
+
+                _ ->
+                    sheet
+    in
+    { updatedSheet
+        | dragDropState = sheet.dragDropState |> DragDrop.drag (Debug.log "move target changed to" droppable)
+    }
+
+
+updateCell : CellRef -> (Cell -> Cell) -> Sheet -> Sheet
+updateCell (CellRef colIndex subColIndex cellIndex) f sheet =
+    { sheet
+        | columns =
+            sheet.columns
+                |> List.Extra.updateAt colIndex
+                    (\column ->
+                        case column of
+                            ResourceColumn col ->
+                                ResourceColumn
+                                    { col
+                                        | subcolumns =
+                                            col.subcolumns
+                                                |> List.Extra.updateAt subColIndex
+                                                    (Selectable.updateAt cellIndex f)
+                                    }
+
+                            TimeColumn col ->
+                                TimeColumn col
+                    )
+    }
+
+
 makeTimeColumn : List TimeWindow -> Column
 makeTimeColumn slots =
     TimeColumn { slots = slots }
@@ -165,9 +270,6 @@ makeSubcolumns window reservations =
         |> List.Extra.gatherWith Schedule.isConflict
         |> List.map (\( x, xs ) -> x :: xs)
         |> slice
-        -- Columns with most reservations on the left
-        |> List.Extra.stableSortWith cmpLength
-        |> List.reverse
         -- Make each sub-column continuous by filling gaps with empty cells
         |> List.map
             (Selectable.fromList { selected = False } << fillInGaps window << List.map ReservedCell << Schedule.sortReservations)
@@ -225,8 +327,3 @@ gapFiller c1 c2 =
     in
     TimeWindow.gap w1 w2
         |> Maybe.map EmptyCell
-
-
-cmpLength : List a -> List b -> Order
-cmpLength xs ys =
-    compare (List.length xs) (List.length ys)

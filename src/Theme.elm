@@ -2,6 +2,7 @@ module Theme exposing (Theme, defaultTheme, emptyCell, reservedCell, resourceCol
 
 import Array exposing (Array)
 import Color
+import DragDrop
 import Duration exposing (Duration)
 import Element exposing (..)
 import Element.Background as Background
@@ -24,6 +25,14 @@ type alias Theme =
 
 type alias CellState s =
     { s | selected : Bool }
+
+
+dragDropConfig =
+    { started = Sheet.MoveStarted
+    , dragged = Sheet.MoveTargetChanged
+    , dropped = Sheet.MoveCompleted
+    , canceled = Sheet.MoveCanceled
+    }
 
 
 defaultTheme : Int -> TimeWindow -> Theme
@@ -193,10 +202,10 @@ anyCell : Theme -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Elemen
 anyCell theme sheet cellRef cell state =
     case cell of
         Sheet.EmptyCell _ ->
-            emptyCell theme cellRef cell state
+            emptyCell theme sheet cellRef cell state
 
         Sheet.ReservedCell _ ->
-            reservedCell theme cellRef cell state
+            reservedCell theme sheet cellRef cell state
 
 
 stickyHeader : Theme -> List (Element Sheet.Msg) -> Element Sheet.Msg
@@ -223,38 +232,64 @@ timeCell theme window =
         [ el [ alignRight, centerY ] <| text <| TimeWindow.formatStart window ]
 
 
-emptyCell : Theme -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
-emptyCell theme cellRef cell state =
+emptyCell : Theme -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
+emptyCell theme sheet cellRef cell state =
     let
         attrs =
             [ Events.onClick (Sheet.CellClicked cell cellRef) ]
     in
-    renderCell theme attrs <| Sheet.cellWindow cell
+    (renderCell theme attrs <|
+        Sheet.cellWindow cell
+    )
+        |> DragDrop.makeDroppable sheet.dragDropState dragDropConfig (Sheet.DroppableCell cell cellRef)
 
 
-reservedCell : Theme -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
-reservedCell theme cellRef cell { selected } =
+reservedCell : Theme -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
+reservedCell theme sheet cellRef cell { selected } =
     let
+        topHandle =
+            handle theme
+                |> (if selected then
+                        DragDrop.makeDraggable sheet.dragDropState
+                            dragDropConfig
+                            (Sheet.CellStart cell cellRef)
+
+                    else
+                        identity
+                   )
+
+        bottomHandle =
+            handle theme
+                |> (if selected then
+                        DragDrop.makeDraggable sheet.dragDropState
+                            dragDropConfig
+                            (Sheet.CellEnd cell cellRef)
+
+                    else
+                        identity
+                   )
+
         attrs =
             Background.color theme.cells.backgroundColor
                 :: Events.onClick (Sheet.CellClicked cell cellRef)
                 :: (if selected then
-                        [ below <|
-                            handle theme
-                        , above <|
-                            handle theme
+                        [ above <|
+                            topHandle
+                        , below <|
+                            bottomHandle
                         ]
 
                     else
                         []
                    )
     in
-    renderCell theme attrs <| Sheet.cellWindow cell
+    (renderCell theme attrs <| Sheet.cellWindow cell)
+        |> DragDrop.makeDroppable sheet.dragDropState dragDropConfig (Sheet.DroppableCell cell cellRef)
 
 
 handle : Theme -> Element Sheet.Msg
 handle theme =
-    el [ centerX ] <| text "o"
+    el [ centerX ] <| text "-- o --"
 
 
 renderCell : Theme -> List (Attribute Sheet.Msg) -> TimeWindow -> Element Sheet.Msg

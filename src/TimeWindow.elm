@@ -1,4 +1,4 @@
-module TimeWindow exposing (TimeWindow, compare, formatStart, gap, getDuration, getEnd, getStart, isEmpty, make, overlaps, split)
+module TimeWindow exposing (TimeWindow, compare, formatStart, gap, getDuration, getEnd, getStart, isEmpty, make, moveStart, overlaps, split)
 
 import Duration exposing (Duration, seconds)
 import Time exposing (Posix)
@@ -139,3 +139,32 @@ gap w1 w2 =
 isEmpty : TimeWindow -> Bool
 isEmpty (TimeWindow { duration }) =
     duration == seconds 0
+
+
+moveStart : Posix -> TimeWindow -> TimeWindow
+moveStart newStart ((TimeWindow { start, duration }) as window) =
+    let
+        startMs =
+            Time.posixToMillis start
+
+        newStartMs =
+            Time.posixToMillis newStart
+
+        delta =
+            startMs
+                - newStartMs
+                |> toFloat
+
+        newDuration =
+            duration
+                |> Duration.inMilliseconds
+                |> (+) delta
+    in
+    if newDuration <= 0 then
+        window
+
+    else
+        TimeWindow
+            { start = newStart
+            , duration = Duration.milliseconds newDuration
+            }
