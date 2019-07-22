@@ -1,4 +1,4 @@
-module Sheet exposing (Cell(..), CellRef, CellState, Column(..), ColumnRef, Draggable(..), Droppable(..), Msg(..), Sheet, SubColumn, cellWindow, dragDropConfig, make, makeCellRef, makeColumnRef, update)
+module Sheet exposing (Cell(..), CellRef, CellState, Column(..), ColumnRef, Draggable(..), Droppable(..), Msg(..), Sheet, SubColumn, cellWindow, make, makeCellRef, makeColumnRef, update)
 
 import DragDrop
 import Duration exposing (Duration)
@@ -52,15 +52,7 @@ type Draggable
 
 
 type Droppable
-    = DroppableCell Cell CellRef
-
-
-dragDropConfig =
-    { started = MoveStarted
-    , dragged = MoveTargetChanged
-    , dropped = MoveCompleted
-    , canceled = MoveCanceled
-    }
+    = DroppableCell Cell CellRef --  Duration
 
 
 type Msg
@@ -202,6 +194,9 @@ onMoveStarted draggable sheet =
 onMoveTargetChanged : Draggable -> Droppable -> Sheet -> Sheet
 onMoveTargetChanged draggable droppable sheet =
     let
+        relativeOffset =
+            Duration.seconds 0
+
         updatedSheet =
             case ( draggable, droppable ) of
                 ( CellStart _ cellRef, DroppableCell dropTarget _ ) ->
@@ -211,9 +206,7 @@ onMoveTargetChanged draggable droppable sheet =
                                 case cell of
                                     ReservedCell reservation ->
                                         reservation
-                                            |> Debug.log "before"
-                                            |> Schedule.moveReservation (dropTarget |> cellWindow |> TimeWindow.getStart)
-                                            |> Debug.log "after"
+                                            |> Schedule.moveReservation (dropTarget |> cellWindow |> TimeWindow.getStart |> offsetBy relativeOffset)
                                             |> ReservedCell
 
                                     EmptyCell window ->
@@ -226,6 +219,19 @@ onMoveTargetChanged draggable droppable sheet =
     { updatedSheet
         | dragDropState = sheet.dragDropState |> DragDrop.drag (Debug.log "move target changed to" droppable)
     }
+
+
+offsetBy d t =
+    let
+        ms =
+            Duration.inMilliseconds d
+    in
+    t
+        |> Time.posixToMillis
+        |> toFloat
+        |> (+) ms
+        |> round
+        |> Time.millisToPosix
 
 
 updateCell : CellRef -> (Cell -> Cell) -> Sheet -> Sheet

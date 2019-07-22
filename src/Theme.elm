@@ -29,7 +29,7 @@ type alias CellState s =
 
 dragDropConfig =
     { started = Sheet.MoveStarted
-    , dragged = Sheet.MoveTargetChanged
+    , dragged = \draggable droppable _ -> Sheet.MoveTargetChanged draggable droppable
     , dropped = Sheet.MoveCompleted
     , canceled = Sheet.MoveCanceled
     }
