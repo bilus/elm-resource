@@ -1,5 +1,6 @@
-module Sheet exposing (Cell(..), CellRef, CellState, Column(..), ColumnRef, Msg(..), Sheet, SubColumn, cellWindow, make, makeCellRef, makeColumnRef, update)
+module Sheet exposing (Cell(..), CellRef, CellState, Column(..), ColumnRef, Draggable(..), Droppable(..), Msg(..), Sheet, SubColumn, cellWindow, dragDropConfig, make, makeCellRef, makeColumnRef, update)
 
+import DragDrop
 import Duration exposing (Duration)
 import List.Extra
 import Monocle.Lens exposing (Lens)
@@ -15,6 +16,7 @@ type alias Sheet =
     { window : TimeWindow
     , columns : List Column
     , theme : Theme
+    , dragDropState : DragDrop.State Draggable Droppable
     }
 
 
@@ -45,8 +47,29 @@ type Cell
     | ReservedCell Reservation
 
 
+type Draggable
+    = CellStart CellRef
+    | CellEnd CellRef
+
+
+type Droppable
+    = DroppableCell CellRef
+
+
+dragDropConfig =
+    { started = MoveStarted
+    , dragged = MoveTargetChanged
+    , dropped = MoveCompleted
+    , canceled = MoveCanceled
+    }
+
+
 type Msg
-    = OnCellClicked Cell CellRef
+    = CellClicked Cell CellRef
+    | MoveStarted Draggable
+    | MoveTargetChanged Draggable Droppable
+    | MoveCompleted Draggable Droppable
+    | MoveCanceled Draggable
 
 
 type ColumnRef
@@ -65,6 +88,10 @@ type CellRef
 makeCellRef : ColumnRef -> Int -> Int -> CellRef
 makeCellRef (ColumnRef colIndex) subColIndex cellIndex =
     CellRef colIndex subColIndex cellIndex
+
+
+type DropTarget
+    = OntoEmptyCell Cell CellRef
 
 
 make : Theme -> Int -> TimeWindow -> List Schedule -> Sheet
@@ -91,14 +118,18 @@ make theme slotCount window schedules =
     { window = window
     , columns = makeTimeColumn slots :: resourceColumns
     , theme = theme
+    , dragDropState = DragDrop.init
     }
 
 
 update : Msg -> Sheet -> ( Sheet, Cmd Msg )
 update msg sheet =
     case msg of
-        OnCellClicked cell cellRef ->
+        CellClicked cell cellRef ->
             ( sheet |> onCellClicked cell cellRef, Cmd.none )
+
+        _ ->
+            ( sheet, Cmd.none )
 
 
 onCellClicked : Cell -> CellRef -> Sheet -> Sheet

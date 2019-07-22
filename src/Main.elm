@@ -3,6 +3,7 @@ module Main exposing (main)
 import Array exposing (Array)
 import Browser
 import Color
+import DragDrop
 import Duration exposing (Duration, hours, minutes, seconds)
 import Element exposing (..)
 import Element.Background as Background
@@ -13,7 +14,7 @@ import Iso8601
 import List.Extra
 import Maybe.Extra
 import Schedule exposing (Reservation(..), ReservationId(..), Resource, ResourceId(..), Schedule, mapReservations, newResource, newSchedule)
-import Sheet exposing (Cell(..), CellRef, CellState, Column(..), ColumnRef, Sheet, SubColumn)
+import Sheet exposing (Cell(..), CellRef, CellState, Column(..), ColumnRef, Draggable(..), Droppable(..), Sheet, SubColumn)
 import Theme
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow, make)
@@ -176,7 +177,7 @@ viewCell sheet cellRef cell state =
 
         --++ " " ++ Debug.toString cellRef ++ " " ++ Debug.toString state
         onClick =
-            Sheet.OnCellClicked cell cellRef
+            Sheet.CellClicked cell cellRef
     in
     case cell of
         EmptyCell _ ->
@@ -184,6 +185,15 @@ viewCell sheet cellRef cell state =
 
         ReservedCell _ ->
             Theme.reservedCell sheet.theme (Sheet.cellWindow cell) state labelEl onClick
+                |> (if state.selected then
+                        DragDrop.makeDraggable
+                            sheet.dragDropState
+                            Sheet.dragDropConfig
+                            (DraggableCell cellRef)
+
+                    else
+                        identity
+                   )
 
 
 cellLabel : Cell -> String

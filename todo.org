@@ -8,9 +8,17 @@
 
 * DONE Manager can see the reservation table
   CLOSED: [2019-07-16 Tue 13:16]
-* TODO Sheet is themed
-* TODO Manager can add notes to a selected reservation
+* DONE Sheet is themed
+  CLOSED: [2019-07-19 Fri 22:38]
 * TODO Manager can resize a reservation to change its time
+** DONE Draw resize handles
+   CLOSED: [2019-07-19 Fri 22:39]
+** DONE Try to use elm-ui-dragdrop
+   CLOSED: [2019-07-22 Mon 12:15]
+** TODO Make a segment handle draggable to see how it looks like
+** TODO Resize segment as its handle is being dragged
+** TODO Break up segments into e.g. 30 minute sub-segments
+* TODO Manager can add notes to a selected reservation
 * TODO Manager can click an empty cell to add a new reservation
 * TODO Manager can click an allocated cell, potentially splitting the reservation
 * Manager can select multiple cells in the same column to merge them
