@@ -15,7 +15,7 @@ import List.Extra
 import Maybe.Extra
 import Schedule exposing (Reservation(..), ReservationId(..), Resource, ResourceId(..), Schedule, mapReservations, newResource, newSchedule)
 import Sheet exposing (Cell(..), CellRef, CellState, Column(..), ColumnRef, Draggable(..), Droppable(..), Sheet, SubColumn)
-import Theme
+import Theme exposing (Theme)
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow, make)
 import Util.Selectable as Selectable
@@ -33,6 +33,7 @@ type Msg
 type alias Model =
     { currPage : Page
     , sheet : Sheet
+    , theme : Theme
     }
 
 
@@ -69,7 +70,8 @@ init _ =
             TimeWindow.make (Time.millisToPosix 0) (Duration.hours 24)
     in
     ( { currPage = InputPage
-      , sheet = Sheet.make (Theme.defaultTheme 48 window) 48 window sampleSchedule
+      , sheet = Sheet.make 48 window sampleSchedule
+      , theme = Theme.defaultTheme 48 window
       }
     , Cmd.none
     )
@@ -110,51 +112,52 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "elm-resource"
     , body =
-        [ (layout [] <| viewSheet model.sheet)
+        [ (layout [] <| viewSheet model.sheet model.theme)
             |> Html.map SheetMsg
         ]
     }
 
 
-viewSheet : Sheet -> Element Sheet.Msg
-viewSheet sheet =
-    Theme.sheetFrame sheet.theme <|
+viewSheet : Sheet -> Theme -> Element Sheet.Msg
+viewSheet sheet theme =
+    Theme.sheetFrame
+        theme
         (sheet.columns
             |> List.indexedMap
                 (\i column ->
-                    viewColumn sheet (Sheet.makeColumnRef i) column
+                    viewColumn sheet theme (Sheet.makeColumnRef i) column
                 )
         )
 
 
-viewColumn : Sheet -> ColumnRef -> Column -> Element Sheet.Msg
-viewColumn sheet colRef col =
+viewColumn : Sheet -> Theme -> ColumnRef -> Column -> Element Sheet.Msg
+viewColumn sheet theme colRef col =
     case col of
         TimeColumn { slots } ->
-            viewTimeColumn sheet slots
+            viewTimeColumn theme slots
 
         ResourceColumn { resource, subcolumns } ->
-            viewResourceColumn sheet colRef resource subcolumns
+            viewResourceColumn sheet theme colRef resource subcolumns
 
 
-viewTimeColumn : Sheet -> List TimeWindow -> Element Sheet.Msg
-viewTimeColumn sheet slots =
+viewTimeColumn : Theme -> List TimeWindow -> Element Sheet.Msg
+viewTimeColumn theme slots =
     let
         slotRows =
             slots
                 |> List.drop 1
-                |> List.map (Theme.timeCell sheet.theme)
+                |> List.map (Theme.timeCell theme)
     in
-    Theme.timeColumn sheet.theme "Czas" slotRows
+    Theme.timeColumn theme "Czas" slotRows
 
 
-viewResourceColumn : Sheet -> ColumnRef -> Resource -> List SubColumn -> Element Sheet.Msg
-viewResourceColumn sheet colRef resource subcolumns =
+viewResourceColumn : Sheet -> Theme -> ColumnRef -> Resource -> List SubColumn -> Element Sheet.Msg
+viewResourceColumn sheet theme colRef resource subcolumns =
     let
         title =
             Schedule.getResourceName resource
     in
-    Theme.resourceColumn sheet.theme
+    Theme.resourceColumn theme
         title
         (subcolumns
             |> List.indexedMap
@@ -162,15 +165,15 @@ viewResourceColumn sheet colRef resource subcolumns =
                     subcolumn
                         |> Selectable.indexedMapWithState
                             (\cellIndex cell ->
-                                viewCell sheet (Sheet.makeCellRef colRef subColIndex cellIndex) cell
+                                viewCell sheet theme (Sheet.makeCellRef colRef subColIndex cellIndex) cell
                             )
                         |> Selectable.toList
                 )
         )
 
 
-viewCell : Sheet -> CellRef -> Cell -> CellState -> Element Sheet.Msg
-viewCell sheet cellRef cell state =
+viewCell : Sheet -> Theme -> CellRef -> Cell -> CellState -> Element Sheet.Msg
+viewCell sheet theme cellRef cell state =
     let
         labelEl =
             text <| cellLabel cell
@@ -181,19 +184,21 @@ viewCell sheet cellRef cell state =
     in
     case cell of
         EmptyCell _ ->
-            Theme.emptyCell sheet.theme (Sheet.cellWindow cell) state labelEl onClick
+            Theme.emptyCell theme (Sheet.cellWindow cell) state labelEl onClick
 
         ReservedCell _ ->
-            Theme.reservedCell sheet.theme (Sheet.cellWindow cell) state labelEl onClick
-                |> (if state.selected then
-                        DragDrop.makeDraggable
-                            sheet.dragDropState
-                            Sheet.dragDropConfig
-                            (DraggableCell cellRef)
+            Theme.reservedCell theme (Sheet.cellWindow cell) state labelEl onClick
 
-                    else
-                        identity
-                   )
+
+
+-- |> (if state.selected then
+--         DragDrop.makeDraggable
+--             sheet.dragDropState
+--             Sheet.dragDropConfig
+--             (DraggableCell cellRef)
+--     else
+--         identity
+--    )
 
 
 cellLabel : Cell -> String

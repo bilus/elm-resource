@@ -5,7 +5,6 @@ import Duration exposing (Duration)
 import List.Extra
 import Monocle.Lens exposing (Lens)
 import Schedule exposing (Reservation, Resource, Schedule)
-import Theme exposing (Theme)
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow)
 import Util.List exposing (slice, window2)
@@ -15,7 +14,6 @@ import Util.Selectable as Selectable exposing (Selectable)
 type alias Sheet =
     { window : TimeWindow
     , columns : List Column
-    , theme : Theme
     , dragDropState : DragDrop.State Draggable Droppable
     }
 
@@ -94,12 +92,9 @@ type DropTarget
     = OntoEmptyCell Cell CellRef
 
 
-make : Theme -> Int -> TimeWindow -> List Schedule -> Sheet
-make theme slotCount window schedules =
+make : Int -> TimeWindow -> List Schedule -> Sheet
+make slotCount window schedules =
     let
-        slotHeight =
-            theme.defaultCell.heightPx
-
         slots =
             TimeWindow.split slotCount window
 
@@ -108,16 +103,12 @@ make theme slotCount window schedules =
                 |> Maybe.map (Duration.inSeconds << TimeWindow.getDuration)
                 |> Maybe.withDefault 0
 
-        pixelsPerSecond =
-            toFloat slotHeight / duration
-
         resourceColumns =
             schedules
                 |> List.map (makeResourceColumn window)
     in
     { window = window
     , columns = makeTimeColumn slots :: resourceColumns
-    , theme = theme
     , dragDropState = DragDrop.init
     }
 
