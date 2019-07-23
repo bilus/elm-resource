@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <script src="main.js"></script>
+  <title>Main</title>
+</head>
+
+<body>
+</body>
+    <script>
+     document.body.addEventListener("dragstart", event => {
+         if (event.target && event.target.draggable) {
+             // absurdly, this is needed for Firefox; see https://medium.com/elm-shorts/elm-drag-and-drop-game-630205556d2
+             event.dataTransfer.setData("text/html", "blank");
+         }
+     });
+
+     document.body.addEventListener("drop", event => {
+         // this is needed in order to make dragging work
+         return false;
+     });
+     document.body.addEventListener("dragend", event => {
+         // this is needed in order to make dragging work
+         return false;
+     });
+     document.body.addEventListener("dragleave", event => {
+         // this is needed in order to make dragging work
+         return false;
+     });
+     document.body.addEventListener("dragover", event => {
+         // this is needed in order to make dragging work
+         return false;
+     });
+     var elmApp = Elm.Main.init({flags: {}});
+    </script>
+
+</html>

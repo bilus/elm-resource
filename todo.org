@@ -15,7 +15,8 @@
    CLOSED: [2019-07-19 Fri 22:39]
 ** DONE Try to use elm-ui-dragdrop
    CLOSED: [2019-07-22 Mon 12:15]
-** TODO Make a segment handle draggable to see how it looks like
+** DONE Make a segment handle draggable to see how it looks like
+   CLOSED: [2019-07-24 Wed 15:43]
 ** TODO Resize segment as its handle is being dragged
 ** TODO Break up segments into e.g. 30 minute sub-segments
 * TODO Manager can add notes to a selected reservation

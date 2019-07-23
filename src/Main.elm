@@ -45,21 +45,22 @@ sampleSchedule =
     [ newSchedule
         (newResource (ResourceId "id1") "ZS 672AE")
         [ Schedule.newReservation (ReservationId "r1") (Time.millisToPosix (1000 * 60 * 30)) (hours 4) ]
-    , newSchedule
-        (newResource (ResourceId "id1") "ZS 8127S")
-        [ Schedule.newReservation (ReservationId "r2") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
-        , Schedule.newReservation (ReservationId "r3") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
-        ]
-    , newSchedule
-        (newResource (ResourceId "id1") "ZS 1234")
-        [ Schedule.newReservation (ReservationId "r4") (Time.millisToPosix 0) (minutes 15)
-        ]
-    , newSchedule
-        (newResource (ResourceId "id1") "ZS AAAAA")
-        [ Schedule.newReservation (ReservationId "r5") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
-        , Schedule.newReservation (ReservationId "r6") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
-        , Schedule.newReservation (ReservationId "r7") (Time.millisToPosix (1000 * 60 * 360)) (hours 2)
-        ]
+
+    -- , newSchedule
+    --     (newResource (ResourceId "id1") "ZS 8127S")
+    --     [ Schedule.newReservation (ReservationId "r2") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
+    --     , Schedule.newReservation (ReservationId "r3") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
+    --     ]
+    -- , newSchedule
+    --     (newResource (ResourceId "id1") "ZS 1234")
+    --     [ Schedule.newReservation (ReservationId "r4") (Time.millisToPosix 0) (minutes 15)
+    --     ]
+    -- , newSchedule
+    --     (newResource (ResourceId "id1") "ZS AAAAA")
+    --     [ Schedule.newReservation (ReservationId "r5") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
+    --     , Schedule.newReservation (ReservationId "r6") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
+    --     , Schedule.newReservation (ReservationId "r7") (Time.millisToPosix (1000 * 60 * 360)) (hours 2)
+    --     ]
     ]
 
 

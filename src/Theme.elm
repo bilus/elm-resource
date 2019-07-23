@@ -6,6 +6,7 @@ import DragDrop
 import Duration exposing (Duration)
 import Element exposing (..)
 import Element.Background as Background
+import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font exposing (Font)
 import Html.Attributes exposing (style)
@@ -18,8 +19,9 @@ import Util.Selectable as Selectable
 type alias Theme =
     { defaultCell : { heightPx : Int, widthPx : Int, pixelsPerSecond : Float }
     , columns : Array { bgColor : Color }
-    , header : { fontFamily : List Font, fontSize : Int, backgroundColor : Color, textColor : Color }
+    , header : { heightPx : Int, padding : Int, fontFamily : List Font, fontSize : Int, backgroundColor : Color, textColor : Color }
     , cells : { fontFamily : List Font, fontSize : Int, backgroundColor : Color, textColor : Color }
+    , timeCell : { fontSize : Int }
     }
 
 
@@ -29,7 +31,7 @@ type alias CellState s =
 
 dragDropConfig =
     { started = Sheet.MoveStarted
-    , dragged = \draggable droppable _ -> Sheet.MoveTargetChanged draggable droppable
+    , dragged = Sheet.MoveTargetChanged
     , dropped = Sheet.MoveCompleted
     , canceled = Sheet.MoveCanceled
     }
@@ -83,7 +85,9 @@ defaultTheme slotCount window =
         }
     , columns = columns
     , header =
-        { fontFamily = [ Font.typeface "Helvetica" ]
+        { heightPx = defaultCellHeight
+        , padding = 3
+        , fontFamily = [ Font.typeface "Helvetica" ]
         , fontSize = 20
         , backgroundColor = rgba 0.8 0.8 0.8 0.8
         , textColor = rgb 0 0 0
@@ -94,17 +98,19 @@ defaultTheme slotCount window =
         , backgroundColor = Color.lightOrange |> toColor
         , textColor = Color.darkBrown |> toColor
         }
+    , timeCell =
+        { fontSize = 14
+        }
     }
 
 
-cellHeight : Theme -> TimeWindow -> Length
+cellHeight : Theme -> TimeWindow -> Int
 cellHeight theme window =
     window
         |> TimeWindow.getDuration
         |> Duration.inSeconds
         |> (*) theme.defaultCell.pixelsPerSecond
         |> round
-        |> px
 
 
 toColor : Color.Color -> Color
@@ -129,8 +135,34 @@ sheetFrame theme sheet =
     row
         [ width fill
         , height fill
+        , behindContent <| sheetBackground theme sheet
+        , inFront <|
+            if DragDrop.isDragging sheet.dragDropState then
+                dragDropGrid theme sheet
+
+            else
+                none
         ]
         cols
+
+
+sheetBackground : Theme -> Sheet -> Element Sheet.Msg
+sheetBackground theme sheet =
+    let
+        border =
+            [ Border.color <| rgba 0.7 0.9 0.9 1, Border.width 1, Border.dotted ]
+    in
+    column [ width fill, height fill ] <|
+        headerRow theme [] []
+            :: (List.range 1 sheet.slotCount
+                    |> List.map
+                        (\_ -> row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ border) [])
+               )
+
+
+dragDropGrid : Theme -> Sheet -> Element Sheet.Msg
+dragDropGrid theme sheet =
+    text "Dragging"
 
 
 anyColumn : Theme -> Sheet -> Sheet.ColumnRef -> Sheet.Column -> Element Sheet.Msg
@@ -151,9 +183,6 @@ timeColumn theme slots =
 
         titleElems =
             [ el [ alignRight, centerY ] <| text title ]
-
-        topPadding =
-            toFloat theme.defaultCell.heightPx / 2 |> round
 
         slotRows =
             slots
@@ -213,23 +242,38 @@ stickyHeader theme elems =
     let
         sticky =
             [ style "position" "sticky", style "top" "0" ] |> List.map htmlAttribute
+
+        bgColor =
+            Background.color <| theme.header.backgroundColor
     in
+    headerRow theme (bgColor :: sticky) elems
+
+
+edges =
+    { top = 0
+    , right = 0
+    , bottom = 0
+    , left = 0
+    }
+
+
+headerRow : Theme -> List (Attribute Sheet.Msg) -> List (Element Sheet.Msg) -> Element Sheet.Msg
+headerRow theme attrs elems =
     row
-        ([ width fill
-         , Background.color <| theme.header.backgroundColor
-         , padding 3
-         ]
-            ++ sticky
-        )
+        ([ width fill, padding theme.header.padding, height <| px theme.header.heightPx ] ++ attrs)
         elems
 
 
 timeCell : Theme -> TimeWindow -> Element Sheet.Msg
 timeCell theme window =
+    let
+        h =
+            cellHeight theme window
+    in
     row
-        [ width fill, height (cellHeight theme window) ]
+        [ width fill, height <| px h, moveDown <| toFloat theme.timeCell.fontSize / 2 ]
     <|
-        [ el [ alignRight, centerY ] <| text <| TimeWindow.formatStart window ]
+        [ el [ alignRight, Font.size theme.timeCell.fontSize, alignBottom ] <| text <| TimeWindow.formatStart window ]
 
 
 emptyCell : Theme -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
@@ -271,6 +315,8 @@ reservedCell theme sheet cellRef cell { selected } =
 
         attrs =
             Background.color theme.cells.backgroundColor
+                :: Border.rounded 3
+                :: Border.shadow { offset = ( 1, 1 ), size = 0.005, blur = 5.0, color = rgb 0.5 0.5 0.5 }
                 :: Events.onClick (Sheet.CellClicked cell cellRef)
                 :: (if selected then
                         [ above <|
@@ -294,5 +340,5 @@ handle theme =
 
 renderCell : Theme -> List (Attribute Sheet.Msg) -> TimeWindow -> Element Sheet.Msg
 renderCell theme attrs window =
-    row [ paddingXY 0 1, width fill, height (cellHeight theme window) ]
-        [ el ([ width fill, height fill, Font.size 12 ] ++ attrs) <| text "" ]
+    row [ paddingXY 0 1, width fill, height <| px <| cellHeight theme window ]
+        [ el ([ width fill, height fill, Font.size 12 ] ++ attrs) none ]

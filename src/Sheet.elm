@@ -58,7 +58,7 @@ type Droppable
 type Msg
     = CellClicked Cell CellRef
     | MoveStarted Draggable
-    | MoveTargetChanged Draggable Droppable
+    | MoveTargetChanged Draggable (Maybe Droppable)
     | MoveCompleted Draggable Droppable
     | MoveCanceled Draggable
 
@@ -157,8 +157,11 @@ update msg sheet =
         MoveTargetChanged draggable droppable ->
             ( sheet |> onMoveTargetChanged draggable droppable |> recalc, Cmd.none )
 
-        _ ->
-            ( sheet, Cmd.none )
+        MoveCompleted draggable droppable ->
+            ( sheet |> onMoveCompleted draggable droppable, Cmd.none )
+
+        MoveCanceled draggable ->
+            ( sheet |> onMoveCanceled draggable, Cmd.none )
 
 
 onCellClicked : Cell -> CellRef -> Sheet -> Sheet
@@ -191,7 +194,7 @@ onMoveStarted draggable sheet =
     }
 
 
-onMoveTargetChanged : Draggable -> Droppable -> Sheet -> Sheet
+onMoveTargetChanged : Draggable -> Maybe Droppable -> Sheet -> Sheet
 onMoveTargetChanged draggable droppable sheet =
     let
         relativeOffset =
@@ -199,7 +202,7 @@ onMoveTargetChanged draggable droppable sheet =
 
         updatedSheet =
             case ( draggable, droppable ) of
-                ( CellStart _ cellRef, DroppableCell dropTarget _ ) ->
+                ( CellStart _ cellRef, Just (DroppableCell dropTarget _) ) ->
                     sheet
                         |> updateCell cellRef
                             (\cell ->
@@ -219,6 +222,16 @@ onMoveTargetChanged draggable droppable sheet =
     { updatedSheet
         | dragDropState = sheet.dragDropState |> DragDrop.drag (Debug.log "move target changed to" droppable)
     }
+
+
+onMoveCompleted : Draggable -> Droppable -> Sheet -> Sheet
+onMoveCompleted draggable droppable sheet =
+    { sheet | dragDropState = sheet.dragDropState |> DragDrop.stop }
+
+
+onMoveCanceled : Draggable -> Sheet -> Sheet
+onMoveCanceled draggable sheet =
+    { sheet | dragDropState = sheet.dragDropState |> DragDrop.stop }
 
 
 offsetBy d t =
