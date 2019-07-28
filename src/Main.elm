@@ -19,7 +19,6 @@ import Sheet exposing (Cell(..), CellRef, CellState, Column(..), ColumnRef, Drag
 import Theme exposing (Theme)
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow, make)
-import Util.Selectable as Selectable
 
 
 type Page

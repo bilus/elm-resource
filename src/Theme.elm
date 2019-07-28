@@ -208,11 +208,17 @@ resourceColumn theme sheet colRef resource subcolumns =
                 |> List.indexedMap
                     (\subColIndex subcolumn ->
                         subcolumn
-                            |> Selectable.indexedMapWithState
+                            |> List.indexedMap
                                 (\cellIndex cell ->
-                                    anyCell theme sheet (Sheet.makeCellRef colRef subColIndex cellIndex) cell
+                                    let
+                                        cellRef =
+                                            Sheet.makeCellRef colRef subColIndex cellIndex
+
+                                        selected =
+                                            Just cellRef == sheet.selectedCell
+                                    in
+                                    anyCell theme sheet cellRef cell { selected = selected }
                                 )
-                            |> Selectable.toList
                     )
 
         subcolumnsEl =
@@ -286,7 +292,7 @@ reservedCell theme sheet cellRef cell { selected } =
         topHandle =
             handle theme
                 |> (if selected then
-                        DragDrop.makeDraggable sheet.dragDropState
+                        DragDrop.makeDraggable
                             dragDropConfig
                             (Sheet.CellStart cell cellRef)
 
@@ -297,7 +303,7 @@ reservedCell theme sheet cellRef cell { selected } =
         bottomHandle =
             handle theme
                 |> (if selected then
-                        DragDrop.makeDraggable sheet.dragDropState
+                        DragDrop.makeDraggable
                             dragDropConfig
                             (Sheet.CellEnd cell cellRef)
 

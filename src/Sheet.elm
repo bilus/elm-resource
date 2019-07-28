@@ -8,7 +8,6 @@ import Schedule exposing (Reservation, Resource, Schedule)
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow)
 import Util.List exposing (slice, window2)
-import Util.Selectable as Selectable exposing (Selectable)
 
 
 type alias Sheet =
@@ -16,6 +15,7 @@ type alias Sheet =
     , columns : List Column
     , dragDropState : DragDrop.State Draggable Droppable
     , slotCount : Int
+    , selectedCell : Maybe CellRef
     }
 
 
@@ -30,7 +30,7 @@ type Column
 
 
 type alias SubColumn =
-    Selectable CellState Cell
+    List Cell
 
 
 selected =
@@ -87,6 +87,7 @@ make slotCount window schedules =
     , columns = makeColumns slotCount window schedules
     , dragDropState = DragDrop.init
     , slotCount = slotCount
+    , selectedCell = Nothing
     }
 
 
@@ -136,7 +137,6 @@ getSchedules { columns } =
                                         ReservedCell reservation ->
                                             [ reservation ]
                                 )
-                                << Selectable.toList
                             )
                         |> Schedule.newSchedule resource
                         |> List.singleton
@@ -165,26 +165,20 @@ update msg sheet =
 
 
 onCellClicked : Cell -> CellRef -> Sheet -> Sheet
-onCellClicked cell (CellRef colIndex subColIndex cellIndex) sheet =
-    { sheet
-        | columns =
-            sheet.columns
-                |> List.Extra.updateAt colIndex
-                    (\column ->
-                        case column of
-                            ResourceColumn col ->
-                                ResourceColumn
-                                    { col
-                                        | subcolumns =
-                                            col.subcolumns
-                                                |> List.Extra.updateAt subColIndex
-                                                    (Selectable.choose cell selected)
-                                    }
+onCellClicked cell cellRef sheet =
+    if DragDrop.isDragging sheet.dragDropState then
+        sheet
 
-                            TimeColumn col ->
-                                TimeColumn col
-                    )
-    }
+    else
+        let
+            newSelection =
+                if sheet.selectedCell == Just cellRef then
+                    Nothing
+
+                else
+                    Just cellRef
+        in
+        { sheet | selectedCell = newSelection }
 
 
 onMoveStarted : Draggable -> Sheet -> Sheet
@@ -196,31 +190,28 @@ onMoveStarted draggable sheet =
 
 onMoveTargetChanged : Draggable -> Maybe Droppable -> Sheet -> Sheet
 onMoveTargetChanged draggable droppable sheet =
-    let
-        relativeOffset =
-            Duration.seconds 0
-
-        updatedSheet =
-            case ( draggable, droppable ) of
-                ( CellStart _ cellRef, Just (DroppableCell dropTarget _) ) ->
-                    sheet
-                        |> updateCell cellRef
-                            (\cell ->
-                                case cell of
-                                    ReservedCell reservation ->
-                                        reservation
-                                            |> Schedule.moveReservation (dropTarget |> cellWindow |> TimeWindow.getStart |> offsetBy relativeOffset)
-                                            |> ReservedCell
-
-                                    EmptyCell window ->
-                                        EmptyCell window
-                            )
-
-                _ ->
-                    sheet
-    in
-    { updatedSheet
-        | dragDropState = sheet.dragDropState |> DragDrop.drag (Debug.log "move target changed to" droppable)
+    -- let
+    --     relativeOffset =
+    --         Duration.seconds 0
+    --     updatedSheet =
+    --         case ( draggable, droppable ) of
+    --             ( CellStart _ cellRef, Just (DroppableCell dropTarget _) ) ->
+    --                 sheet
+    --                     |> updateCell cellRef
+    --                         (\cell ->
+    --                             case cell of
+    --                                 ReservedCell reservation ->
+    --                                     reservation
+    --                                         |> Schedule.moveReservation (dropTarget |> cellWindow |> TimeWindow.getStart |> offsetBy relativeOffset)
+    --                                         |> ReservedCell
+    --                                 EmptyCell window ->
+    --                                     EmptyCell window
+    --                         )
+    --             _ ->
+    --                 sheet
+    -- in
+    { sheet
+        | dragDropState = sheet.dragDropState |> DragDrop.drag droppable
     }
 
 
@@ -261,7 +252,7 @@ updateCell (CellRef colIndex subColIndex cellIndex) f sheet =
                                         | subcolumns =
                                             col.subcolumns
                                                 |> List.Extra.updateAt subColIndex
-                                                    (Selectable.updateAt cellIndex f)
+                                                    (List.Extra.updateAt cellIndex f)
                                     }
 
                             TimeColumn col ->
@@ -291,7 +282,7 @@ makeSubcolumns window reservations =
         |> slice
         -- Make each sub-column continuous by filling gaps with empty cells
         |> List.map
-            (Selectable.fromList { selected = False } << fillInGaps window << List.map ReservedCell << Schedule.sortReservations)
+            (fillInGaps window << List.map ReservedCell << Schedule.sortReservations)
 
 
 makeCell : Posix -> Duration -> Cell
