@@ -1,7 +1,9 @@
-module Sheet exposing (Cell(..), CellRef, CellState, Column(..), ColumnRef, Draggable(..), Droppable(..), Msg(..), Sheet, SubColumn, cellWindow, make, makeCellRef, makeColumnRef, update)
+module Sheet exposing (Cell(..), CellRef, CellState, Column(..), ColumnRef, Draggable(..), Droppable(..), Msg(..), Sheet, SubColumn, cellWindow, make, makeCellRef, makeColumnRef, subscribe, update)
 
+import Browser.Events
 import DragDrop
 import Duration exposing (Duration)
+import Json.Decode as Json
 import List.Extra
 import Monocle.Lens exposing (Lens)
 import Schedule exposing (Reservation, Resource, Schedule)
@@ -47,8 +49,8 @@ type Cell
 
 
 type Draggable
-    = CellStart Cell CellRef
-    | CellEnd Cell CellRef
+    = CellStart CellRef
+    | CellEnd CellRef
 
 
 type Droppable
@@ -145,6 +147,18 @@ getSchedules { columns } =
         |> List.concatMap getSchedule
 
 
+subscribe : Sheet -> Sub Msg
+subscribe sheet =
+    Sub.none
+
+
+
+-- Browser.Events.onMouseUp <|
+--     Json.map2 MouseUp
+--         (Json.field "pageX" Json.int)
+--         (Json.field "pageY" Json.int)
+
+
 update : Msg -> Sheet -> ( Sheet, Cmd Msg )
 update msg sheet =
     case msg of
@@ -161,24 +175,20 @@ update msg sheet =
             ( sheet |> onMoveCompleted draggable droppable, Cmd.none )
 
         MoveCanceled draggable ->
-            ( sheet |> onMoveCanceled draggable, Cmd.none )
+            ( sheet |> onMoveCanceled, Cmd.none )
 
 
 onCellClicked : Cell -> CellRef -> Sheet -> Sheet
 onCellClicked cell cellRef sheet =
-    if DragDrop.isDragging sheet.dragDropState then
-        sheet
+    let
+        newSelection =
+            if sheet.selectedCell == Just cellRef then
+                Nothing
 
-    else
-        let
-            newSelection =
-                if sheet.selectedCell == Just cellRef then
-                    Nothing
-
-                else
-                    Just cellRef
-        in
-        { sheet | selectedCell = newSelection }
+            else
+                Just cellRef
+    in
+    { sheet | selectedCell = newSelection }
 
 
 onMoveStarted : Draggable -> Sheet -> Sheet
@@ -220,8 +230,8 @@ onMoveCompleted draggable droppable sheet =
     { sheet | dragDropState = sheet.dragDropState |> DragDrop.stop }
 
 
-onMoveCanceled : Draggable -> Sheet -> Sheet
-onMoveCanceled draggable sheet =
+onMoveCanceled : Sheet -> Sheet
+onMoveCanceled sheet =
     { sheet | dragDropState = sheet.dragDropState |> DragDrop.stop }
 
 

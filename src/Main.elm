@@ -84,7 +84,8 @@ init _ =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Sheet.subscribe model.sheet
+        |> Sub.map SheetMsg
 
 
 

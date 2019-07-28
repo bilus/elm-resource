@@ -18,22 +18,17 @@
              event.dataTransfer.setData("text/html", "blank");
          }
      });
-
-     document.body.addEventListener("drop", event => {
-         // this is needed in order to make dragging work
-         return false;
-     });
-     document.body.addEventListener("dragend", event => {
-         // this is needed in order to make dragging work
-         return false;
-     });
-     document.body.addEventListener("dragleave", event => {
-         // this is needed in order to make dragging work
-         return false;
+     document.body.addEventListener("dragenter", event => {
+         event.stopPropagation();
+         event.preventDefault();
      });
      document.body.addEventListener("dragover", event => {
-         // this is needed in order to make dragging work
-         return false;
+         event.stopPropagation();
+         event.preventDefault();
+     });
+     document.body.addEventListener("dragleave", event => {
+         event.stopPropagation();
+         event.preventDefault();
      });
      var elmApp = Elm.Main.init({flags: {}});
     </script>

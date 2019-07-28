@@ -9,6 +9,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font exposing (Font)
+import Element.Lazy as Lazy
 import Html.Attributes exposing (style)
 import Schedule
 import Sheet exposing (Sheet)
@@ -294,7 +295,7 @@ reservedCell theme sheet cellRef cell { selected } =
                 |> (if selected then
                         DragDrop.makeDraggable
                             dragDropConfig
-                            (Sheet.CellStart cell cellRef)
+                            (Sheet.CellStart cellRef)
 
                     else
                         identity
@@ -305,7 +306,7 @@ reservedCell theme sheet cellRef cell { selected } =
                 |> (if selected then
                         DragDrop.makeDraggable
                             dragDropConfig
-                            (Sheet.CellEnd cell cellRef)
+                            (Sheet.CellEnd cellRef)
 
                     else
                         identity

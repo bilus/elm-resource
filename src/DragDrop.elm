@@ -50,8 +50,8 @@ isDragging state =
             False
 
 
-makeDraggable : State draggable droppable -> Config msg draggable droppable -> draggable -> Element msg -> Element msg
-makeDraggable state config dragged elem =
+makeDraggable : Config msg draggable droppable -> draggable -> Element msg -> Element msg
+makeDraggable config dragged elem =
     Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
@@ -59,16 +59,12 @@ makeDraggable state config dragged elem =
         , Events.onDragStart (config.started dragged)
         , Events.onDragEnd
             (\_ ->
-                let
-                    _ =
-                        Debug.log "onDragEnd" state
-                in
-                case state.dropTarget of
-                    Just dropTarget ->
-                        config.dropped dragged dropTarget
-
-                    Nothing ->
-                        config.canceled dragged
+                config.canceled (Debug.log "canceled" dragged)
+             -- case state.dropTarget of
+             --     Just dropTarget ->
+             --         config.dropped dragged dropTarget
+             --     Nothing ->
+             --         config.canceled dragged
             )
         ]
         elem
@@ -81,6 +77,7 @@ makeDroppable state config dropTarget elem =
             Element.el
                 [ Element.width Element.fill
                 , Element.height Element.fill
+                , Events.onDragEnter (\_ -> config.dragged dragged (Just dropTarget))
                 , Events.onDragOver (\_ -> config.dragged dragged (Just dropTarget))
                 , Events.onDragLeave (config.dragged dragged Nothing)
                 , Events.onDrop (\_ -> Debug.log "dropped" config.dropped dragged dropTarget)
