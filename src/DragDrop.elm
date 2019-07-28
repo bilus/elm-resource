@@ -1,6 +1,6 @@
 module DragDrop exposing (State, drag, init, isDragging, makeDraggable, makeDroppable, start, stop)
 
-import Element exposing (Element)
+import Element exposing (Element, inFront)
 import Element.Events as Events
 import Html.Attributes exposing (property)
 import Json.Encode
@@ -57,19 +57,19 @@ makeDraggable state config dragged elem =
         , Element.height Element.fill
         , Element.htmlAttribute <| property "draggable" (Json.Encode.bool True)
         , Events.onDragStart (config.started dragged)
+        , Events.onDragEnd
+            (\_ ->
+                let
+                    _ =
+                        Debug.log "onDragEnd" state
+                in
+                case state.dropTarget of
+                    Just dropTarget ->
+                        config.dropped dragged dropTarget
 
-        -- , Events.onDragEnd
-        --     (\_ ->
-        --         let
-        --             _ =
-        --                 Debug.log "onDragEnd" state
-        --         in
-        --         case state.dropTarget of
-        --             Just dropTarget ->
-        --                 config.dropped dragged dropTarget
-        --             Nothing ->
-        --                 config.canceled dragged
-        --     )
+                    Nothing ->
+                        config.canceled dragged
+            )
         ]
         elem
 
@@ -78,10 +78,6 @@ makeDroppable : State draggable droppable -> Config msg draggable droppable -> d
 makeDroppable state config dropTarget elem =
     case state.dragged of
         Just dragged ->
-            let
-                _ =
-                    Debug.log "makeDroppable" "!"
-            in
             Element.el
                 [ Element.width Element.fill
                 , Element.height Element.fill

@@ -249,14 +249,6 @@ stickyHeader theme elems =
     headerRow theme (bgColor :: sticky) elems
 
 
-edges =
-    { top = 0
-    , right = 0
-    , bottom = 0
-    , left = 0
-    }
-
-
 headerRow : Theme -> List (Attribute Sheet.Msg) -> List (Element Sheet.Msg) -> Element Sheet.Msg
 headerRow theme attrs elems =
     row
