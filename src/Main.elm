@@ -8,6 +8,7 @@ import Duration exposing (Duration, hours, minutes, seconds)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font exposing (Font)
+import Element.Input as Input
 import Html exposing (Html)
 import Html.Attributes exposing (style)
 import Iso8601
@@ -27,6 +28,7 @@ type Page
 
 type Msg
     = SheetMsg Sheet.Msg
+    | Reset
     | NoOp
 
 
@@ -45,22 +47,21 @@ sampleSchedule =
     [ newSchedule
         (newResource (ResourceId "id1") "ZS 672AE")
         [ Schedule.newReservation (ReservationId "r1") (Time.millisToPosix (1000 * 60 * 30)) (hours 4) ]
-
-    -- , newSchedule
-    --     (newResource (ResourceId "id1") "ZS 8127S")
-    --     [ Schedule.newReservation (ReservationId "r2") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
-    --     , Schedule.newReservation (ReservationId "r3") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
-    --     ]
-    -- , newSchedule
-    --     (newResource (ResourceId "id1") "ZS 1234")
-    --     [ Schedule.newReservation (ReservationId "r4") (Time.millisToPosix 0) (minutes 15)
-    --     ]
-    -- , newSchedule
-    --     (newResource (ResourceId "id1") "ZS AAAAA")
-    --     [ Schedule.newReservation (ReservationId "r5") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
-    --     , Schedule.newReservation (ReservationId "r6") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
-    --     , Schedule.newReservation (ReservationId "r7") (Time.millisToPosix (1000 * 60 * 360)) (hours 2)
-    --     ]
+    , newSchedule
+        (newResource (ResourceId "id1") "ZS 8127S")
+        [ Schedule.newReservation (ReservationId "r2") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
+        , Schedule.newReservation (ReservationId "r3") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
+        ]
+    , newSchedule
+        (newResource (ResourceId "id1") "ZS 1234")
+        [ Schedule.newReservation (ReservationId "r4") (Time.millisToPosix 0) (minutes 15)
+        ]
+    , newSchedule
+        (newResource (ResourceId "id1") "ZS AAAAA")
+        [ Schedule.newReservation (ReservationId "r5") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
+        , Schedule.newReservation (ReservationId "r6") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
+        , Schedule.newReservation (ReservationId "r7") (Time.millisToPosix (1000 * 60 * 360)) (hours 2)
+        ]
     ]
 
 
@@ -101,6 +102,9 @@ update msg model =
             in
             ( { model | sheet = updatedSheet }, Cmd.map SheetMsg cmd )
 
+        Reset ->
+            init ()
+
         NoOp ->
             ( model, Cmd.none )
 
@@ -113,8 +117,12 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "elm-resource"
     , body =
-        [ (layout [] <| viewSheet model.sheet model.theme)
-            |> Html.map SheetMsg
+        [ layout [] <|
+            column [ width fill, height fill ]
+                [ Input.button [] { onPress = Just Reset, label = text "Reset" }
+                , viewSheet model.sheet model.theme
+                    |> Element.map SheetMsg
+                ]
         ]
     }
 
