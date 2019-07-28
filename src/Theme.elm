@@ -292,32 +292,24 @@ reservedCell theme sheet cellRef cell { selected } =
     let
         topHandle =
             handle theme
-                |> (if selected then
-                        DragDrop.makeDraggable
-                            dragDropConfig
-                            (Sheet.CellStart cellRef)
-
-                    else
-                        identity
-                   )
+                |> DragDrop.makeDraggable
+                    sheet.dragDropState
+                    dragDropConfig
+                    (Sheet.CellStart cellRef)
 
         bottomHandle =
             handle theme
-                |> (if selected then
-                        DragDrop.makeDraggable
-                            dragDropConfig
-                            (Sheet.CellEnd cellRef)
-
-                    else
-                        identity
-                   )
+                |> DragDrop.makeDraggable
+                    sheet.dragDropState
+                    dragDropConfig
+                    (Sheet.CellEnd cellRef)
 
         attrs =
             Background.color theme.cells.backgroundColor
                 :: Border.rounded 3
                 :: Border.shadow { offset = ( 1, 1 ), size = 0.005, blur = 5.0, color = rgb 0.5 0.5 0.5 }
                 :: Events.onClick (Sheet.CellClicked cell cellRef)
-                :: (if selected then
+                :: (if selected && not (DragDrop.isDragging sheet.dragDropState) then
                         [ above <|
                             topHandle
                         , below <|
@@ -332,9 +324,20 @@ reservedCell theme sheet cellRef cell { selected } =
         |> DragDrop.makeDroppable sheet.dragDropState dragDropConfig (Sheet.DroppableCell cell cellRef)
 
 
+unselectable : List (Attribute Sheet.Msg)
+unselectable =
+    [ style "-moz-user-select" "none"
+    , style "-khtml-user-select" "none"
+    , style "-webkit-user-select" "none"
+    , style "-ms-user-select" "none"
+    , style "user-select" "none"
+    ]
+        |> List.map htmlAttribute
+
+
 handle : Theme -> Element Sheet.Msg
 handle theme =
-    el [ centerX ] <| text "-- o --"
+    el (centerX :: unselectable) <| text "-- o --"
 
 
 renderCell : Theme -> List (Attribute Sheet.Msg) -> TimeWindow -> Element Sheet.Msg

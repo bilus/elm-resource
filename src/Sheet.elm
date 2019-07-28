@@ -59,6 +59,7 @@ type Droppable
 
 type Msg
     = CellClicked Cell CellRef
+    | MouseUp Int Int
     | MoveStarted Draggable
     | MoveTargetChanged Draggable (Maybe Droppable)
     | MoveCompleted Draggable Droppable
@@ -149,14 +150,14 @@ getSchedules { columns } =
 
 subscribe : Sheet -> Sub Msg
 subscribe sheet =
-    Sub.none
+    if DragDrop.isDragging sheet.dragDropState then
+        Browser.Events.onMouseUp <|
+            Json.map2 MouseUp
+                (Json.field "pageX" Json.int)
+                (Json.field "pageY" Json.int)
 
-
-
--- Browser.Events.onMouseUp <|
---     Json.map2 MouseUp
---         (Json.field "pageX" Json.int)
---         (Json.field "pageY" Json.int)
+    else
+        Sub.none
 
 
 update : Msg -> Sheet -> ( Sheet, Cmd Msg )
@@ -175,6 +176,13 @@ update msg sheet =
             ( sheet |> onMoveCompleted draggable droppable, Cmd.none )
 
         MoveCanceled draggable ->
+            if DragDrop.isDragging sheet.dragDropState then
+                ( sheet |> onMoveCanceled, Cmd.none )
+
+            else
+                ( sheet, Cmd.none )
+
+        MouseUp _ _ ->
             ( sheet |> onMoveCanceled, Cmd.none )
 
 
@@ -194,7 +202,7 @@ onCellClicked cell cellRef sheet =
 onMoveStarted : Draggable -> Sheet -> Sheet
 onMoveStarted draggable sheet =
     { sheet
-        | dragDropState = sheet.dragDropState |> DragDrop.start draggable
+        | dragDropState = sheet.dragDropState |> DragDrop.start draggable |> Debug.log "onMoveStarted"
     }
 
 
@@ -221,18 +229,18 @@ onMoveTargetChanged draggable droppable sheet =
     --                 sheet
     -- in
     { sheet
-        | dragDropState = sheet.dragDropState |> DragDrop.drag droppable
+        | dragDropState = sheet.dragDropState |> DragDrop.drag droppable |> Debug.log "onMoveTargetChanged"
     }
 
 
 onMoveCompleted : Draggable -> Droppable -> Sheet -> Sheet
 onMoveCompleted draggable droppable sheet =
-    { sheet | dragDropState = sheet.dragDropState |> DragDrop.stop }
+    { sheet | dragDropState = sheet.dragDropState |> DragDrop.stop |> Debug.log "onMoveCompleted" }
 
 
 onMoveCanceled : Sheet -> Sheet
 onMoveCanceled sheet =
-    { sheet | dragDropState = sheet.dragDropState |> DragDrop.stop }
+    { sheet | dragDropState = sheet.dragDropState |> DragDrop.stop |> Debug.log "onMoveCanceled" }
 
 
 offsetBy d t =

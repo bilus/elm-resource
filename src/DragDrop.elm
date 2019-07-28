@@ -50,22 +50,12 @@ isDragging state =
             False
 
 
-makeDraggable : Config msg draggable droppable -> draggable -> Element msg -> Element msg
-makeDraggable config dragged elem =
+makeDraggable : State draggable droppable -> Config msg draggable droppable -> draggable -> Element msg -> Element msg
+makeDraggable state config dragged elem =
     Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
-        , Element.htmlAttribute <| property "draggable" (Json.Encode.bool True)
-        , Events.onDragStart (config.started dragged)
-        , Events.onDragEnd
-            (\_ ->
-                config.canceled (Debug.log "canceled" dragged)
-             -- case state.dropTarget of
-             --     Just dropTarget ->
-             --         config.dropped dragged dropTarget
-             --     Nothing ->
-             --         config.canceled dragged
-            )
+        , Events.onMouseDown (config.started dragged)
         ]
         elem
 
@@ -77,10 +67,9 @@ makeDroppable state config dropTarget elem =
             Element.el
                 [ Element.width Element.fill
                 , Element.height Element.fill
-                , Events.onDragEnter (\_ -> config.dragged dragged (Just dropTarget))
-                , Events.onDragOver (\_ -> config.dragged dragged (Just dropTarget))
-                , Events.onDragLeave (config.dragged dragged Nothing)
-                , Events.onDrop (\_ -> Debug.log "dropped" config.dropped dragged dropTarget)
+                , Events.onMouseEnter (config.dragged dragged (Just dropTarget))
+                , Events.onMouseLeave (config.dragged dragged Nothing)
+                , Events.onMouseUp (config.dropped dragged dropTarget)
                 ]
                 elem
 
