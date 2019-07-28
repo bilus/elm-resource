@@ -163,7 +163,19 @@ sheetBackground theme sheet =
 
 dragDropGrid : Theme -> Sheet -> Element Sheet.Msg
 dragDropGrid theme sheet =
-    text "Dragging"
+    let
+        border =
+            [ Border.color <| rgba 0.9 0.9 0.9 1, Border.width 1, Border.dotted ]
+    in
+    column [ width fill, height fill ] <|
+        headerRow theme [] []
+            :: (Sheet.getTimeSlots sheet
+                    |> List.map
+                        (\window ->
+                            row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ border) []
+                                |> DragDrop.makeDroppable sheet.dragDropState dragDropConfig (Sheet.DroppableWindow window)
+                        )
+               )
 
 
 anyColumn : Theme -> Sheet -> Sheet.ColumnRef -> Sheet.Column -> Element Sheet.Msg
@@ -281,10 +293,8 @@ emptyCell theme sheet cellRef cell state =
         attrs =
             [ Events.onClick (Sheet.CellClicked cell cellRef) ]
     in
-    (renderCell theme attrs <|
+    renderCell theme attrs <|
         Sheet.cellWindow cell
-    )
-        |> DragDrop.makeDroppable sheet.dragDropState dragDropConfig (Sheet.DroppableCell cell cellRef)
 
 
 reservedCell : Theme -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
@@ -320,8 +330,7 @@ reservedCell theme sheet cellRef cell { selected } =
                         []
                    )
     in
-    (renderCell theme attrs <| Sheet.cellWindow cell)
-        |> DragDrop.makeDroppable sheet.dragDropState dragDropConfig (Sheet.DroppableCell cell cellRef)
+    renderCell theme attrs <| Sheet.cellWindow cell
 
 
 unselectable : List (Attribute Sheet.Msg)

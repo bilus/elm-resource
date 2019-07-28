@@ -1,4 +1,4 @@
-module DragDrop exposing (State, drag, init, isDragging, makeDraggable, makeDroppable, start, stop)
+module DragDrop exposing (State, drag, init, isDragging, makeDraggable, makeDroppable, mapDragged, start, stop)
 
 import Element exposing (Element, inFront)
 import Element.Events as Events
@@ -48,6 +48,11 @@ isDragging state =
 
         Nothing ->
             False
+
+
+mapDragged : (draggable -> draggable) -> State draggable droppable -> State draggable droppable
+mapDragged f state =
+    { state | dragged = Maybe.map f state.dragged }
 
 
 makeDraggable : State draggable droppable -> Config msg draggable droppable -> draggable -> Element msg -> Element msg

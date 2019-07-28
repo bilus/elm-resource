@@ -1,4 +1,4 @@
-module Schedule exposing (Reservation(..), ReservationId(..), Resource, ResourceId(..), Schedule, getReservations, getResource, getResourceName, getWindow, isConflict, isReservationOverlapping, mapReservations, moveReservation, newReservation, newResource, newSchedule, sortReservations)
+module Schedule exposing (Reservation(..), ReservationId(..), Resource, ResourceId(..), Schedule, getReservationId, getReservations, getResource, getResourceName, getWindow, isConflict, isReservationOverlapping, mapReservations, moveReservation, newReservation, newResource, newSchedule, sortReservations)
 
 import Duration as Duration exposing (Duration)
 import List.Extra
@@ -60,6 +60,11 @@ getWindow (Reservation { window }) =
 moveReservation : Posix -> Reservation -> Reservation
 moveReservation newStart (Reservation { id, window }) =
     Reservation { id = id, window = window |> TimeWindow.moveStart newStart }
+
+
+getReservationId : Reservation -> ReservationId
+getReservationId (Reservation { id }) =
+    id
 
 
 type ReservationId

@@ -1,4 +1,4 @@
-module Sheet exposing (Cell(..), CellRef, CellState, Column(..), ColumnRef, Draggable(..), Droppable(..), Msg(..), Sheet, SubColumn, cellWindow, make, makeCellRef, makeColumnRef, subscribe, update)
+module Sheet exposing (Cell(..), CellRef, CellState, Column(..), ColumnRef, Draggable(..), Droppable(..), Msg(..), Sheet, SubColumn, cellWindow, getTimeSlots, make, makeCellRef, makeColumnRef, subscribe, update)
 
 import Browser.Events
 import DragDrop
@@ -10,6 +10,7 @@ import Schedule exposing (Reservation, Resource, Schedule)
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow)
 import Util.List exposing (slice, window2)
+import Util.Maybe exposing (isJust)
 
 
 type alias Sheet =
@@ -53,8 +54,18 @@ type Draggable
     | CellEnd CellRef
 
 
+mapDraggable : (CellRef -> CellRef) -> Draggable -> Draggable
+mapDraggable f draggable =
+    case draggable of
+        CellStart ref ->
+            CellStart (f ref)
+
+        CellEnd ref ->
+            CellEnd (f ref)
+
+
 type Droppable
-    = DroppableCell Cell CellRef --  Duration
+    = DroppableWindow TimeWindow
 
 
 type Msg
@@ -101,10 +112,134 @@ recalc sheet =
             sheet
                 |> getSchedules
                 |> List.map (makeResourceColumn sheet.window)
+
+        newColumns =
+            makeColumns sheet.slotCount sheet.window (getSchedules sheet)
+
+        remap : CellRef -> CellRef
+        remap =
+            remappedReservedCellRef sheet.columns newColumns
     in
     { sheet
-        | columns = makeColumns sheet.slotCount sheet.window (getSchedules sheet)
+        | columns = newColumns
+        , selectedCell =
+            sheet.selectedCell
+                |> Maybe.map remap
+        , dragDropState =
+            sheet.dragDropState
+                |> DragDrop.mapDragged (mapDraggable remap)
     }
+
+
+remappedReservedCellRef : List Column -> List Column -> CellRef -> CellRef
+remappedReservedCellRef oldColumns newColumns oldRef =
+    let
+        reservationId =
+            cellRefToReservationId oldColumns oldRef
+
+        newRef =
+            reservationId
+                |> Maybe.andThen (reservationIdToCellRef newColumns)
+                |> Maybe.withDefault oldRef
+    in
+    newRef
+
+
+cellRefToReservationId : List Column -> CellRef -> Maybe Schedule.ReservationId
+cellRefToReservationId columns cellRef =
+    findByRef cellRef columns
+        |> Maybe.andThen
+            getReservation
+        |> Maybe.map Schedule.getReservationId
+
+
+reservationIdToCellRef : List Column -> Schedule.ReservationId -> Maybe CellRef
+reservationIdToCellRef columns reservationId =
+    columns
+        |> findCellRef
+            (\cell ->
+                getReservation cell
+                    |> Maybe.map Schedule.getReservationId
+                    |> Maybe.map ((==) reservationId)
+                    |> Maybe.withDefault False
+            )
+
+
+findByRef : CellRef -> List Column -> Maybe Cell
+findByRef (CellRef colIndex subColIndex cellIndex) columns =
+    columns
+        |> List.Extra.getAt colIndex
+        |> Maybe.map
+            (\column ->
+                case column of
+                    ResourceColumn { subcolumns } ->
+                        subcolumns
+
+                    TimeColumn _ ->
+                        []
+            )
+        |> Maybe.andThen (List.Extra.getAt subColIndex)
+        |> Maybe.andThen (List.Extra.getAt cellIndex)
+
+
+findCellRef : (Cell -> Bool) -> List Column -> Maybe CellRef
+findCellRef pred =
+    let
+        findCellRefColumn : Int -> Column -> Maybe CellRef
+        findCellRefColumn colIndex column =
+            case column of
+                ResourceColumn { subcolumns } ->
+                    subcolumns
+                        |> List.Extra.indexedFoldr
+                            (\subColIndex cells match ->
+                                if isJust match then
+                                    match
+
+                                else
+                                    cells
+                                        |> findCellRefCells colIndex subColIndex
+                            )
+                            Nothing
+
+                TimeColumn _ ->
+                    Nothing
+
+        findCellRefCells : Int -> Int -> List Cell -> Maybe CellRef
+        findCellRefCells colIndex subColIndex =
+            Maybe.map (CellRef colIndex subColIndex)
+                << List.Extra.indexedFoldr
+                    (\cellIndex cell match ->
+                        if isJust match then
+                            match
+
+                        else if pred cell then
+                            Just cellIndex
+
+                        else
+                            Nothing
+                    )
+                    Nothing
+    in
+    List.Extra.indexedFoldr
+        (\colIndex column match ->
+            if isJust match then
+                match
+
+            else
+                column
+                    |> findCellRefColumn colIndex
+        )
+        Nothing
+
+
+getReservation : Cell -> Maybe Schedule.Reservation
+getReservation cell =
+    case cell of
+        ReservedCell reservation ->
+            Just reservation
+
+        EmptyCell _ ->
+            Nothing
 
 
 makeColumns : Int -> TimeWindow -> List Schedule -> List Column
@@ -208,27 +343,30 @@ onMoveStarted draggable sheet =
 
 onMoveTargetChanged : Draggable -> Maybe Droppable -> Sheet -> Sheet
 onMoveTargetChanged draggable droppable sheet =
-    -- let
-    --     relativeOffset =
-    --         Duration.seconds 0
-    --     updatedSheet =
-    --         case ( draggable, droppable ) of
-    --             ( CellStart _ cellRef, Just (DroppableCell dropTarget _) ) ->
-    --                 sheet
-    --                     |> updateCell cellRef
-    --                         (\cell ->
-    --                             case cell of
-    --                                 ReservedCell reservation ->
-    --                                     reservation
-    --                                         |> Schedule.moveReservation (dropTarget |> cellWindow |> TimeWindow.getStart |> offsetBy relativeOffset)
-    --                                         |> ReservedCell
-    --                                 EmptyCell window ->
-    --                                     EmptyCell window
-    --                         )
-    --             _ ->
-    --                 sheet
-    -- in
-    { sheet
+    let
+        relativeOffset =
+            Duration.seconds 0
+
+        updatedSheet =
+            case ( draggable, droppable ) of
+                ( CellStart cellRef, Just (DroppableWindow targetWindow) ) ->
+                    sheet
+                        |> updateCell cellRef
+                            (\cell ->
+                                case cell of
+                                    ReservedCell reservation ->
+                                        reservation
+                                            |> Schedule.moveReservation (targetWindow |> TimeWindow.getStart |> offsetBy relativeOffset)
+                                            |> ReservedCell
+
+                                    EmptyCell window ->
+                                        EmptyCell window
+                            )
+
+                _ ->
+                    sheet
+    in
+    { updatedSheet
         | dragDropState = sheet.dragDropState |> DragDrop.drag droppable |> Debug.log "onMoveTargetChanged"
     }
 
@@ -355,3 +493,17 @@ gapFiller c1 c2 =
     in
     TimeWindow.gap w1 w2
         |> Maybe.map EmptyCell
+
+
+getTimeSlots : Sheet -> List TimeWindow
+getTimeSlots { columns } =
+    columns
+        |> List.concatMap
+            (\column ->
+                case column of
+                    TimeColumn { slots } ->
+                        slots
+
+                    ResourceColumn _ ->
+                        []
+            )
