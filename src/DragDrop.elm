@@ -1,4 +1,4 @@
-module DragDrop exposing (Pos, State, draggable, dragged, droppable, getDragItem, init, isActive, mapDragged, started, starting, stopped)
+module DragDrop exposing (Pos, State, draggable, dragged, droppable, getDragItem, init, isDragging, isIdle, mapDragged, started, starting, stopped)
 
 import Element exposing (Attribute)
 import Element.Events as Events
@@ -15,7 +15,9 @@ type alias Config msg draggable droppable =
     }
 
 
-type State draggable droppable
+type
+    State draggable droppable
+    -- TODO: Probably Idle -> Starting -> Dragging
     = Idle
     | Starting
         { draggedItem : draggable
@@ -72,14 +74,27 @@ stopped state =
     init
 
 
-isActive : State draggable droppable -> Bool
-isActive state =
+isIdle : State draggable droppable -> Bool
+isIdle state =
+    case state of
+        Idle ->
+            True
+
+        Starting _ ->
+            False
+
+        Started _ ->
+            False
+
+
+isDragging : State draggable droppable -> Bool
+isDragging state =
     case state of
         Idle ->
             False
 
         Starting _ ->
-            True
+            False
 
         Started _ ->
             True
@@ -113,9 +128,13 @@ mapDragged f state =
 
 draggable : State draggable droppable -> Config msg draggable droppable -> draggable -> List (Attribute msg)
 draggable state config draggedItem =
-    [ Events.onMouseDown (config.starting draggedItem)
-    , Events.onMouseMove config.started
-    ]
+    if not <| isIdle state then
+        [ Events.onMouseMove config.started
+        ]
+
+    else
+        [ Events.onMouseDown (config.starting draggedItem)
+        ]
 
 
 droppable : State draggable droppable -> Config msg draggable droppable -> droppable -> List (Attribute msg)

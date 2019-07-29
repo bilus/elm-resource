@@ -139,7 +139,7 @@ sheetFrame theme sheet =
         , height fill
         , behindContent <| sheetBackground theme sheet
         , inFront <|
-            if DragDrop.isActive sheet.dragDropState then
+            if DragDrop.isDragging sheet.dragDropState then
                 dragDropGrid theme sheet
 
             else

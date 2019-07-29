@@ -286,7 +286,7 @@ getSchedules { columns } =
 
 subscribe : Sheet -> Sub Msg
 subscribe sheet =
-    if DragDrop.isActive sheet.dragDropState then
+    if not <| DragDrop.isIdle sheet.dragDropState then
         Browser.Events.onMouseUp <|
             Json.succeed DragDropStopped
 
@@ -296,11 +296,11 @@ subscribe sheet =
 
 update : Msg -> Sheet -> ( Sheet, Cmd Msg )
 update msg sheet =
-    case ( DragDrop.isActive sheet.dragDropState, msg ) of
-        ( False, CellClicked cell cellRef ) ->
+    case ( DragDrop.isIdle sheet.dragDropState, msg ) of
+        ( True, CellClicked cell cellRef ) ->
             ( sheet |> onCellClicked cell cellRef, Cmd.none )
 
-        ( False, DragDropStarting draggable ) ->
+        ( True, DragDropStarting draggable ) ->
             ( { sheet
                 | dragDropState = sheet.dragDropState |> DragDrop.starting draggable { x = 0, y = 0 } |> Debug.log "onDragDropStarted"
               }
@@ -314,13 +314,13 @@ update msg sheet =
             , Cmd.none
             )
 
-        ( True, DragDropTargetChanged droppable ) ->
+        ( False, DragDropTargetChanged droppable ) ->
             ( sheet |> onDragDropTargetChanged droppable |> recalc, Cmd.none )
 
-        ( True, DragDropCompleted droppable ) ->
+        ( False, DragDropCompleted droppable ) ->
             ( sheet |> onDragDropCompleted droppable, Cmd.none )
 
-        ( True, DragDropStopped ) ->
+        ( False, DragDropStopped ) ->
             ( { sheet | dragDropState = sheet.dragDropState |> DragDrop.stopped |> Debug.log "onDragDropStopped" }, Cmd.none )
 
         ( _, Noop ) ->
