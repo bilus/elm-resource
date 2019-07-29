@@ -14,25 +14,32 @@ type alias Config msg draggable droppable =
     }
 
 
-type alias State draggable droppable =
-    { dragged : Maybe draggable
-    , dropTarget : Maybe droppable
-    }
+type State draggable droppable
+    = Idle
+    | Started
+        { dragged : draggable
+        , dropTarget : Maybe droppable
+        }
 
 
 init : State draggable droppable
 init =
-    { dragged = Nothing, dropTarget = Nothing }
+    Idle
 
 
 start : draggable -> State draggable droppable -> State draggable droppable
 start dragged state =
-    { state | dragged = Just dragged }
+    Started { dragged = dragged, dropTarget = Nothing }
 
 
 drag : Maybe droppable -> State draggable droppable -> State draggable droppable
 drag dropTarget state =
-    { state | dropTarget = dropTarget }
+    case state of
+        Idle ->
+            Idle
+
+        Started s ->
+            Started { s | dropTarget = dropTarget }
 
 
 stop : State draggable droppable -> State draggable droppable
@@ -42,17 +49,22 @@ stop state =
 
 isDragging : State draggable droppable -> Bool
 isDragging state =
-    case state.dragged of
-        Just _ ->
+    case state of
+        Started _ ->
             True
 
-        Nothing ->
+        Idle ->
             False
 
 
 mapDragged : (draggable -> draggable) -> State draggable droppable -> State draggable droppable
 mapDragged f state =
-    { state | dragged = Maybe.map f state.dragged }
+    case state of
+        Idle ->
+            Idle
+
+        Started s ->
+            Started { s | dragged = f s.dragged }
 
 
 draggable : State draggable droppable -> Config msg draggable droppable -> draggable -> List (Attribute msg)
@@ -63,12 +75,12 @@ draggable state config dragged =
 
 droppable : State draggable droppable -> Config msg draggable droppable -> droppable -> List (Attribute msg)
 droppable state config dropTarget =
-    case state.dragged of
-        Just dragged ->
+    case state of
+        Started { dragged } ->
             [ Events.onMouseEnter (config.dragged dragged (Just dropTarget))
             , Events.onMouseLeave (config.dragged dragged Nothing)
             , Events.onMouseUp (config.dropped dragged dropTarget)
             ]
 
-        Nothing ->
+        Idle ->
             []
