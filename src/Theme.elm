@@ -31,10 +31,11 @@ type alias CellState s =
 
 
 dragDropConfig =
-    { started = Sheet.MoveStarted
-    , dragged = Sheet.MoveTargetChanged
-    , dropped = Sheet.MoveCompleted
-    , canceled = Sheet.MoveCanceled
+    { starting = Sheet.DragDropStarting
+    , started = Sheet.DragDropStarted
+    , dragged = Sheet.DragDropTargetChanged
+    , dropped = Sheet.DragDropCompleted
+    , stopped = Sheet.DragDropStopped
     }
 
 
@@ -138,7 +139,7 @@ sheetFrame theme sheet =
         , height fill
         , behindContent <| sheetBackground theme sheet
         , inFront <|
-            if DragDrop.isDragging sheet.dragDropState then
+            if DragDrop.isActive sheet.dragDropState then
                 dragDropGrid theme sheet
 
             else

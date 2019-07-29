@@ -70,11 +70,11 @@ type Droppable
 
 type Msg
     = CellClicked Cell CellRef
-    | MouseUp Int Int
-    | MoveStarted Draggable
-    | MoveTargetChanged Draggable (Maybe Droppable)
-    | MoveCompleted Draggable Droppable
-    | MoveCanceled Draggable
+    | DragDropStarting Draggable
+    | DragDropStarted
+    | DragDropTargetChanged (Maybe Droppable)
+    | DragDropStopped
+    | DragDropCompleted Droppable
     | Noop
 
 
@@ -286,11 +286,9 @@ getSchedules { columns } =
 
 subscribe : Sheet -> Sub Msg
 subscribe sheet =
-    if DragDrop.isDragging sheet.dragDropState then
+    if DragDrop.isActive sheet.dragDropState then
         Browser.Events.onMouseUp <|
-            Json.map2 MouseUp
-                (Json.field "pageX" Json.int)
-                (Json.field "pageY" Json.int)
+            Json.succeed DragDropStopped
 
     else
         Sub.none
@@ -298,28 +296,32 @@ subscribe sheet =
 
 update : Msg -> Sheet -> ( Sheet, Cmd Msg )
 update msg sheet =
-    case ( DragDrop.isDragging sheet.dragDropState, msg ) of
+    case ( DragDrop.isActive sheet.dragDropState, msg ) of
         ( False, CellClicked cell cellRef ) ->
             ( sheet |> onCellClicked cell cellRef, Cmd.none )
 
-        ( False, MoveStarted draggable ) ->
-            ( sheet |> onMoveStarted draggable, Cmd.none )
+        ( False, DragDropStarting draggable ) ->
+            ( { sheet
+                | dragDropState = sheet.dragDropState |> DragDrop.starting draggable { x = 0, y = 0 } |> Debug.log "onDragDropStarted"
+              }
+            , Cmd.none
+            )
 
-        ( True, MoveTargetChanged draggable droppable ) ->
-            ( sheet |> onMoveTargetChanged draggable droppable |> recalc, Cmd.none )
+        ( False, DragDropStarted ) ->
+            ( { sheet
+                | dragDropState = sheet.dragDropState |> DragDrop.started |> Debug.log "onDragDropStarted"
+              }
+            , Cmd.none
+            )
 
-        ( True, MoveCompleted draggable droppable ) ->
-            ( sheet |> onMoveCompleted draggable droppable, Cmd.none )
+        ( True, DragDropTargetChanged droppable ) ->
+            ( sheet |> onDragDropTargetChanged droppable |> recalc, Cmd.none )
 
-        ( True, MoveCanceled draggable ) ->
-            if DragDrop.isDragging sheet.dragDropState then
-                ( sheet |> onMoveStopped, Cmd.none )
+        ( True, DragDropCompleted droppable ) ->
+            ( sheet |> onDragDropCompleted droppable, Cmd.none )
 
-            else
-                ( sheet, Cmd.none )
-
-        ( True, MouseUp _ _ ) ->
-            ( sheet |> onMoveStopped, Cmd.none )
+        ( True, DragDropStopped ) ->
+            ( { sheet | dragDropState = sheet.dragDropState |> DragDrop.stopped |> Debug.log "onDragDropStopped" }, Cmd.none )
 
         ( _, Noop ) ->
             let
@@ -348,19 +350,12 @@ onCellClicked cell cellRef sheet =
     { sheet | selectedCell = newSelection |> Debug.log "onCellClicked" }
 
 
-onMoveStarted : Draggable -> Sheet -> Sheet
-onMoveStarted draggable sheet =
-    { sheet
-        | dragDropState = sheet.dragDropState |> DragDrop.start draggable |> Debug.log "onMoveStarted"
-    }
-
-
-onMoveTargetChanged : Draggable -> Maybe Droppable -> Sheet -> Sheet
-onMoveTargetChanged draggable droppable sheet =
+onDragDropTargetChanged : Maybe Droppable -> Sheet -> Sheet
+onDragDropTargetChanged droppable sheet =
     let
         updatedSheet =
-            case ( draggable, droppable ) of
-                ( CellStart cellRef, Just (DroppableWindow targetWindow) ) ->
+            case ( DragDrop.getDragItem sheet.dragDropState, droppable ) of
+                ( Just (CellStart cellRef), Just (DroppableWindow targetWindow) ) ->
                     sheet
                         |> updateCell cellRef
                             (\cell ->
@@ -374,7 +369,7 @@ onMoveTargetChanged draggable droppable sheet =
                                         EmptyCell window
                             )
 
-                ( CellEnd cellRef, Just (DroppableWindow targetWindow) ) ->
+                ( Just (CellEnd cellRef), Just (DroppableWindow targetWindow) ) ->
                     sheet
                         |> updateCell cellRef
                             (\cell ->
@@ -392,18 +387,13 @@ onMoveTargetChanged draggable droppable sheet =
                     sheet
     in
     { updatedSheet
-        | dragDropState = sheet.dragDropState |> DragDrop.drag droppable |> Debug.log "onMoveTargetChanged"
+        | dragDropState = sheet.dragDropState |> DragDrop.dragged droppable |> Debug.log "onDragDropTargetChanged"
     }
 
 
-onMoveCompleted : Draggable -> Droppable -> Sheet -> Sheet
-onMoveCompleted draggable droppable sheet =
-    { sheet | dragDropState = sheet.dragDropState |> DragDrop.stop |> Debug.log "onMoveCompleted" }
-
-
-onMoveStopped : Sheet -> Sheet
-onMoveStopped sheet =
-    { sheet | dragDropState = sheet.dragDropState |> DragDrop.stop |> Debug.log "onMoveStopped" }
+onDragDropCompleted : Droppable -> Sheet -> Sheet
+onDragDropCompleted droppable sheet =
+    { sheet | dragDropState = sheet.dragDropState |> DragDrop.stopped |> Debug.log "onDragDropCompleted" }
 
 
 offsetBy d t =
