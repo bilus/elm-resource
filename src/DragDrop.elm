@@ -1,6 +1,6 @@
-module DragDrop exposing (State, drag, init, isDragging, makeDraggable, makeDroppable, mapDragged, start, stop)
+module DragDrop exposing (State, drag, draggable, droppable, init, isDragging, mapDragged, start, stop)
 
-import Element exposing (Element, inFront)
+import Element exposing (Attribute)
 import Element.Events as Events
 import Html.Attributes exposing (property)
 import Json.Encode
@@ -55,28 +55,20 @@ mapDragged f state =
     { state | dragged = Maybe.map f state.dragged }
 
 
-makeDraggable : State draggable droppable -> Config msg draggable droppable -> draggable -> Element msg -> Element msg
-makeDraggable state config dragged elem =
-    Element.el
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , Events.onMouseDown (config.started dragged)
-        ]
-        elem
+draggable : State draggable droppable -> Config msg draggable droppable -> draggable -> List (Attribute msg)
+draggable state config dragged =
+    [ Events.onMouseDown (config.started dragged)
+    ]
 
 
-makeDroppable : State draggable droppable -> Config msg draggable droppable -> droppable -> Element msg -> Element msg
-makeDroppable state config dropTarget elem =
+droppable : State draggable droppable -> Config msg draggable droppable -> droppable -> List (Attribute msg)
+droppable state config dropTarget =
     case state.dragged of
         Just dragged ->
-            Element.el
-                [ Element.width Element.fill
-                , Element.height Element.fill
-                , Events.onMouseEnter (config.dragged dragged (Just dropTarget))
-                , Events.onMouseLeave (config.dragged dragged Nothing)
-                , Events.onMouseUp (config.dropped dragged dropTarget)
-                ]
-                elem
+            [ Events.onMouseEnter (config.dragged dragged (Just dropTarget))
+            , Events.onMouseLeave (config.dragged dragged Nothing)
+            , Events.onMouseUp (config.dropped dragged dropTarget)
+            ]
 
         Nothing ->
-            elem
+            []

@@ -1,4 +1,4 @@
-module TimeWindow exposing (TimeWindow, compare, formatStart, gap, getDuration, getEnd, getStart, isEmpty, make, moveStart, overlaps, split)
+module TimeWindow exposing (TimeWindow, compare, formatStart, gap, getDuration, getEnd, getStart, isEmpty, make, moveEnd, moveStart, overlaps, split)
 
 import Duration exposing (Duration, seconds)
 import Time exposing (Posix)
@@ -167,4 +167,26 @@ moveStart newStart ((TimeWindow { start, duration }) as window) =
         TimeWindow
             { start = newStart
             , duration = Duration.milliseconds newDuration
+            }
+
+
+moveEnd : Posix -> TimeWindow -> TimeWindow
+moveEnd newEnd ((TimeWindow { start, duration }) as window) =
+    let
+        startMs =
+            Time.posixToMillis start
+
+        newEndMs =
+            Time.posixToMillis newEnd
+
+        newDurationMs =
+            newEndMs - startMs
+    in
+    if newDurationMs <= 0 then
+        window
+
+    else
+        TimeWindow
+            { start = start
+            , duration = newDurationMs |> toFloat |> Duration.milliseconds
             }

@@ -151,7 +151,7 @@ sheetBackground : Theme -> Sheet -> Element Sheet.Msg
 sheetBackground theme sheet =
     let
         border =
-            [ Border.color <| rgba 0.7 0.9 0.9 1, Border.width 1, Border.dotted ]
+            [ Border.color <| rgba 0.9 0.9 0.9 1, Border.width 1, Border.dotted ]
     in
     column [ width fill, height fill ] <|
         headerRow theme [] []
@@ -165,15 +165,18 @@ dragDropGrid : Theme -> Sheet -> Element Sheet.Msg
 dragDropGrid theme sheet =
     let
         border =
-            [ Border.color <| rgba 0.9 0.9 0.9 1, Border.width 1, Border.dotted ]
+            [ Border.color <| rgba 0.7 0.9 0.9 1, Border.width 1, Border.dotted ]
     in
     column [ width fill, height fill ] <|
         headerRow theme [] []
             :: (Sheet.getTimeSlots sheet
                     |> List.map
                         (\window ->
-                            row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ border) []
-                                |> DragDrop.makeDroppable sheet.dragDropState dragDropConfig (Sheet.DroppableWindow window)
+                            let
+                                droppable =
+                                    DragDrop.droppable sheet.dragDropState dragDropConfig (Sheet.DroppableWindow window)
+                            in
+                            row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ border ++ droppable) []
                         )
                )
 
@@ -192,7 +195,7 @@ timeColumn : Theme -> List TimeWindow -> Element Sheet.Msg
 timeColumn theme slots =
     let
         title =
-            "Czas"
+            ""
 
         titleElems =
             [ el [ alignRight, centerY ] <| text title ]
@@ -301,25 +304,17 @@ reservedCell : Theme -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> E
 reservedCell theme sheet cellRef cell { selected } =
     let
         topHandle =
-            handle theme
-                |> DragDrop.makeDraggable
-                    sheet.dragDropState
-                    dragDropConfig
-                    (Sheet.CellStart cellRef)
+            cellResizeHandle theme sheet (Sheet.CellStart cellRef)
 
         bottomHandle =
-            handle theme
-                |> DragDrop.makeDraggable
-                    sheet.dragDropState
-                    dragDropConfig
-                    (Sheet.CellEnd cellRef)
+            cellResizeHandle theme sheet (Sheet.CellEnd cellRef)
 
         attrs =
             Background.color theme.cells.backgroundColor
                 :: Border.rounded 3
                 :: Border.shadow { offset = ( 1, 1 ), size = 0.005, blur = 5.0, color = rgb 0.5 0.5 0.5 }
                 :: Events.onClick (Sheet.CellClicked cell cellRef)
-                :: (if selected && not (DragDrop.isDragging sheet.dragDropState) then
+                :: (if selected then
                         [ above <|
                             topHandle
                         , below <|
@@ -344,9 +339,40 @@ unselectable =
         |> List.map htmlAttribute
 
 
-handle : Theme -> Element Sheet.Msg
-handle theme =
-    el (centerX :: unselectable) <| text "-- o --"
+cellResizeHandle : Theme -> Sheet -> Sheet.Draggable -> Element Sheet.Msg
+cellResizeHandle theme sheet draggable =
+    let
+        handleHeight =
+            15
+
+        move : Attribute Sheet.Msg
+        move =
+            case draggable of
+                Sheet.CellStart _ ->
+                    moveDown handleHeight
+
+                Sheet.CellEnd _ ->
+                    moveUp handleHeight
+
+        draggableAttrs =
+            DragDrop.draggable sheet.dragDropState dragDropConfig draggable
+
+        handle : Element Sheet.Msg
+        handle =
+            el
+                (width fill
+                    :: (height <| px handleHeight)
+                    :: (Background.color <| rgb 0.3 0.3 0.3)
+                    :: move
+                    :: centerX
+                    :: Events.onCustom "click" { stopPropagation = True, preventDefault = True } Sheet.Noop
+                    :: unselectable
+                    ++ draggableAttrs
+                )
+            <|
+                none
+    in
+    handle
 
 
 renderCell : Theme -> List (Attribute Sheet.Msg) -> TimeWindow -> Element Sheet.Msg

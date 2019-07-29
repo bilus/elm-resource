@@ -75,6 +75,7 @@ type Msg
     | MoveTargetChanged Draggable (Maybe Droppable)
     | MoveCompleted Draggable Droppable
     | MoveCanceled Draggable
+    | Noop
 
 
 type ColumnRef
@@ -297,33 +298,46 @@ subscribe sheet =
 
 update : Msg -> Sheet -> ( Sheet, Cmd Msg )
 update msg sheet =
-    case msg of
-        CellClicked cell cellRef ->
+    case ( DragDrop.isDragging sheet.dragDropState, msg ) of
+        ( False, CellClicked cell cellRef ) ->
             ( sheet |> onCellClicked cell cellRef, Cmd.none )
 
-        MoveStarted draggable ->
+        ( False, MoveStarted draggable ) ->
             ( sheet |> onMoveStarted draggable, Cmd.none )
 
-        MoveTargetChanged draggable droppable ->
+        ( True, MoveTargetChanged draggable droppable ) ->
             ( sheet |> onMoveTargetChanged draggable droppable |> recalc, Cmd.none )
 
-        MoveCompleted draggable droppable ->
+        ( True, MoveCompleted draggable droppable ) ->
             ( sheet |> onMoveCompleted draggable droppable, Cmd.none )
 
-        MoveCanceled draggable ->
+        ( True, MoveCanceled draggable ) ->
             if DragDrop.isDragging sheet.dragDropState then
-                ( sheet |> onMoveCanceled, Cmd.none )
+                ( sheet |> onMoveStopped, Cmd.none )
 
             else
                 ( sheet, Cmd.none )
 
-        MouseUp _ _ ->
-            ( sheet |> onMoveCanceled, Cmd.none )
+        ( True, MouseUp _ _ ) ->
+            ( sheet |> onMoveStopped, Cmd.none )
+
+        ( _, Noop ) ->
+            let
+                _ =
+                    Debug.log "Noop" "Noop"
+            in
+            ( sheet, Cmd.none )
+
+        ( _, _ ) ->
+            ( sheet, Cmd.none )
 
 
 onCellClicked : Cell -> CellRef -> Sheet -> Sheet
 onCellClicked cell cellRef sheet =
     let
+        _ =
+            Debug.log "onCellClicked" sheet.dragDropState
+
         newSelection =
             if sheet.selectedCell == Just cellRef then
                 Nothing
@@ -331,7 +345,7 @@ onCellClicked cell cellRef sheet =
             else
                 Just cellRef
     in
-    { sheet | selectedCell = newSelection }
+    { sheet | selectedCell = newSelection |> Debug.log "onCellClicked" }
 
 
 onMoveStarted : Draggable -> Sheet -> Sheet
@@ -344,9 +358,6 @@ onMoveStarted draggable sheet =
 onMoveTargetChanged : Draggable -> Maybe Droppable -> Sheet -> Sheet
 onMoveTargetChanged draggable droppable sheet =
     let
-        relativeOffset =
-            Duration.seconds 0
-
         updatedSheet =
             case ( draggable, droppable ) of
                 ( CellStart cellRef, Just (DroppableWindow targetWindow) ) ->
@@ -356,7 +367,21 @@ onMoveTargetChanged draggable droppable sheet =
                                 case cell of
                                     ReservedCell reservation ->
                                         reservation
-                                            |> Schedule.moveReservation (targetWindow |> TimeWindow.getStart |> offsetBy relativeOffset)
+                                            |> Schedule.moveReservationStart (targetWindow |> TimeWindow.getStart)
+                                            |> ReservedCell
+
+                                    EmptyCell window ->
+                                        EmptyCell window
+                            )
+
+                ( CellEnd cellRef, Just (DroppableWindow targetWindow) ) ->
+                    sheet
+                        |> updateCell cellRef
+                            (\cell ->
+                                case cell of
+                                    ReservedCell reservation ->
+                                        reservation
+                                            |> Schedule.moveReservationEnd (targetWindow |> TimeWindow.getEnd)
                                             |> ReservedCell
 
                                     EmptyCell window ->
@@ -376,9 +401,9 @@ onMoveCompleted draggable droppable sheet =
     { sheet | dragDropState = sheet.dragDropState |> DragDrop.stop |> Debug.log "onMoveCompleted" }
 
 
-onMoveCanceled : Sheet -> Sheet
-onMoveCanceled sheet =
-    { sheet | dragDropState = sheet.dragDropState |> DragDrop.stop |> Debug.log "onMoveCanceled" }
+onMoveStopped : Sheet -> Sheet
+onMoveStopped sheet =
+    { sheet | dragDropState = sheet.dragDropState |> DragDrop.stop |> Debug.log "onMoveStopped" }
 
 
 offsetBy d t =
