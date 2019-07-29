@@ -309,6 +309,17 @@ reservedCell theme sheet cellRef cell { selected } =
         bottomHandle =
             cellResizeHandle theme sheet (Sheet.CellEnd cellRef)
 
+        handles =
+            if selected then
+                [ above <|
+                    topHandle
+                , below <|
+                    bottomHandle
+                ]
+
+            else
+                []
+
         attrs =
             Background.color theme.cells.backgroundColor
                 :: Border.rounded 3
@@ -324,6 +335,7 @@ reservedCell theme sheet cellRef cell { selected } =
                     else
                         []
                    )
+                ++ handles
     in
     renderCell theme attrs <| Sheet.cellWindow cell
 
