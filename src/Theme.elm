@@ -337,8 +337,16 @@ reservedCell theme sheet cellRef cell { selected } =
                         []
                    )
                 ++ handles
+
+        visibleWindow =
+            TimeWindow.intersection sheet.window <| Sheet.cellWindow cell
     in
-    renderCell theme attrs <| Sheet.cellWindow cell
+    case visibleWindow of
+        Just window ->
+            renderCell theme attrs <| window
+
+        Nothing ->
+            none
 
 
 unselectable : List (Attribute Sheet.Msg)

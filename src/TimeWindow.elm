@@ -1,4 +1,4 @@
-module TimeWindow exposing (TimeWindow, compare, formatStart, gap, getDuration, getEnd, getStart, isEmpty, make, moveEnd, moveStart, overlaps, split)
+module TimeWindow exposing (TimeWindow, compare, formatStart, gap, getDuration, getEnd, getStart, intersection, isEmpty, make, moveEnd, moveStart, overlaps, split)
 
 import Duration exposing (Duration, seconds)
 import Time exposing (Posix)
@@ -94,6 +94,40 @@ overlaps (TimeWindow w1) (TimeWindow w2) =
             start2 + (w2.duration |> Duration.inMilliseconds |> round)
     in
     end1 > start2 && end2 > start1
+
+
+intersection : TimeWindow -> TimeWindow -> Maybe TimeWindow
+intersection (TimeWindow w1) (TimeWindow w2) =
+    let
+        start1 =
+            Time.posixToMillis w1.start
+
+        end1 =
+            start1 + (w1.duration |> Duration.inMilliseconds |> round)
+
+        start2 =
+            Time.posixToMillis w2.start
+
+        end2 =
+            start2 + (w2.duration |> Duration.inMilliseconds |> round)
+    in
+    if end1 > start2 && end2 > start1 then
+        let
+            start =
+                max start1 start2
+
+            end =
+                min end1 end2
+
+            duration =
+                (end - start)
+                    |> toFloat
+                    |> Duration.milliseconds
+        in
+        Just (TimeWindow { start = start |> Time.millisToPosix, duration = duration })
+
+    else
+        Nothing
 
 
 compare : TimeWindow -> TimeWindow -> Order

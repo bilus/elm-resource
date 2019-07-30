@@ -452,24 +452,25 @@ makeSubcolumns window reservations =
         |> List.Extra.gatherWith Schedule.isConflict
         |> List.map (\( x, xs ) -> x :: xs)
         |> slice
+        -- Ignore reservations outside the current window
+        |> List.map (List.filter (TimeWindow.overlaps window << Schedule.getWindow))
         -- Make each sub-column continuous by filling gaps with empty cells
-        |> List.map
-            (fillInGaps window << List.map ReservedCell << Schedule.sortReservations)
+        |> List.map (fillInGaps window << List.map ReservedCell << Schedule.sortReservations)
 
 
-makeCell : Posix -> Duration -> Cell
-makeCell start duration =
+makeEmptyCell : Posix -> Duration -> Cell
+makeEmptyCell start duration =
     EmptyCell (TimeWindow.make start duration)
 
 
 fillInGaps : TimeWindow -> List Cell -> List Cell
-fillInGaps window cells =
+fillInGaps sheetWindow cells =
     let
         startPlaceholder =
-            makeCell (TimeWindow.getStart window) (Duration.seconds 0)
+            makeEmptyCell (TimeWindow.getStart sheetWindow) (Duration.seconds 0)
 
         endPlaceholder =
-            makeCell (TimeWindow.getEnd window) (Duration.seconds 0)
+            makeEmptyCell (TimeWindow.getEnd sheetWindow) (Duration.seconds 0)
 
         cells2 =
             startPlaceholder :: cells ++ [ endPlaceholder ]
