@@ -291,7 +291,8 @@ subscribe sheet =
             Json.succeed DragDropStopped
 
     else
-        Sub.none
+        Browser.Events.onMouseMove <|
+            Json.succeed DragDropStarted
 
 
 update : Msg -> Sheet -> ( Sheet, Cmd Msg )
