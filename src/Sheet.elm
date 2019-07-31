@@ -286,13 +286,16 @@ getSchedules { columns } =
 
 subscribe : Sheet -> Sub Msg
 subscribe sheet =
-    if not <| DragDrop.isIdle sheet.dragDropState then
+    if DragDrop.isDragging sheet.dragDropState then
         Browser.Events.onMouseUp <|
             Json.succeed DragDropStopped
 
-    else
+    else if not (DragDrop.isIdle sheet.dragDropState) then
         Browser.Events.onMouseMove <|
             Json.succeed DragDropStarted
+
+    else
+        Sub.none
 
 
 update : Msg -> Sheet -> ( Sheet, Cmd Msg )

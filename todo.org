@@ -20,8 +20,22 @@
    CLOSED: [2019-07-24 Wed 15:43]
 ** DONE Resize segment as its handle is being dragged
    CLOSED: [2019-07-30 Tue 09:39]
+* DONE Stress-testing stressTestSchedule
+  CLOSED: [2019-07-30 Tue 22:13]
+* DONE DragDropStarted is being triggered all the time                  :BUG:
+  CLOSED: [2019-07-31 Wed 09:12]
+* TODO Grid doesn't cover full width                                    :BUG:
+* TODO Use fixed column width
+** TODO Grabbing & dragging doesn't always work (too close to the handle edge) -- mousedown + mousemove
+** TODO Events are spilling through the bottom
+** TODO Need vertical column separators
+** TODO Need to visualize cells that are partially sheet window (e.g. their end isn't visible)
+** TODO No way to resize cells if they get too short
 * TODO Scaling half-hour hour day week month
-**
+** TODO Add scaling buttons at the top (
+** TODO Need a way to see day / month boundaries
+** TODO Properly format time column labels
+* TODO Get rid of time cells (calculate them in view -> slot count unnecessary in sheet) OR put them in a separate field
 * TODO Manager can add notes to a selected reservation
 * TODO Manager can click an empty cell to add a new reservation
 * TODO Manager can click an allocated cell, potentially splitting the reservation
