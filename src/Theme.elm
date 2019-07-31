@@ -17,12 +17,20 @@ import TimeWindow exposing (TimeWindow)
 import Util.Selectable as Selectable
 
 
+type alias Padding =
+    { top : Int, right : Int, bottom : Int, left : Int }
+
+
+edges =
+    { top = 0, right = 0, bottom = 0, left = 0 }
+
+
 type alias Theme =
     { defaultCell : { heightPx : Int, widthPx : Int, pixelsPerSecond : Float }
     , columns : Array { bgColor : Color }
     , header : { heightPx : Int, padding : Int, fontFamily : List Font, fontSize : Int, backgroundColor : Color, textColor : Color }
     , cells : { fontFamily : List Font, fontSize : Int, backgroundColor : Color, textColor : Color }
-    , timeCell : { fontSize : Int }
+    , timeCell : { fontSize : Int, widthPx : Int, padding : Padding }
     }
 
 
@@ -102,6 +110,8 @@ defaultTheme slotCount window =
         }
     , timeCell =
         { fontSize = 14
+        , widthPx = 100
+        , padding = { edges | right = 5 }
         }
     }
 
@@ -133,9 +143,17 @@ sheetFrame theme sheet =
                     (\i column ->
                         anyColumn theme sheet (Sheet.makeColumnRef i) column
                     )
+
+        fillerHeader =
+            stickyHeader theme []
+
+        filler =
+            column [ width fill, height fill, inFront <| fillerHeader ]
+                [ fillerHeader
+                ]
     in
     row
-        [ width fill
+        [ width shrink -- fit contents
         , height fill
         , behindContent <| sheetBackground theme sheet
         , inFront <|
@@ -145,7 +163,7 @@ sheetFrame theme sheet =
             else
                 none
         ]
-        cols
+        (cols ++ [ filler ])
 
 
 sheetBackground : Theme -> Sheet -> Element Sheet.Msg
@@ -153,13 +171,15 @@ sheetBackground theme sheet =
     let
         border =
             [ Border.color <| rgba 0.9 0.9 0.9 1, Border.width 1, Border.dotted ]
+
+        guides =
+            List.range 1 sheet.slotCount
+                |> List.map
+                    (\_ -> row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ border) [])
     in
     column [ width fill, height fill ] <|
         headerRow theme [] []
-            :: (List.range 1 sheet.slotCount
-                    |> List.map
-                        (\_ -> row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ border) [])
-               )
+            :: guides
 
 
 dragDropGrid : Theme -> Sheet -> Element Sheet.Msg
@@ -167,19 +187,26 @@ dragDropGrid theme sheet =
     let
         border =
             [ Border.color <| rgba 0.7 0.9 0.9 1, Border.width 1, Border.dotted ]
+
+        guides =
+            Sheet.getTimeSlots sheet
+                |> List.map
+                    (\window ->
+                        let
+                            droppable =
+                                DragDrop.droppable sheet.dragDropState dragDropConfig (Sheet.DroppableWindow window)
+                        in
+                        row
+                            ([ width fill, height <| px theme.defaultCell.heightPx ]
+                                ++ border
+                                ++ droppable
+                            )
+                            []
+                    )
     in
     column [ width fill, height fill ] <|
         headerRow theme [] []
-            :: (Sheet.getTimeSlots sheet
-                    |> List.map
-                        (\window ->
-                            let
-                                droppable =
-                                    DragDrop.droppable sheet.dragDropState dragDropConfig (Sheet.DroppableWindow window)
-                            in
-                            row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ border ++ droppable) []
-                        )
-               )
+            :: guides
 
 
 anyColumn : Theme -> Sheet -> Sheet.ColumnRef -> Sheet.Column -> Element Sheet.Msg
@@ -206,7 +233,7 @@ timeColumn theme slots =
                 |> List.drop 1
                 |> List.map (timeCell theme)
     in
-    column [ width fill, height fill, inFront <| stickyHeader theme titleElems ] <|
+    column [ width <| px theme.timeCell.widthPx, height fill, inFront <| stickyHeader theme titleElems ] <|
         stickyHeader theme titleElems
             :: slotRows
 
@@ -245,7 +272,7 @@ resourceColumn theme sheet colRef resource subcolumns =
         subcolumnEl els =
             column [ width fill, height fill ] <| els
     in
-    column [ width fill, height fill, inFront <| stickyHeader theme titleElems ] <|
+    column [ width <| px theme.defaultCell.widthPx, height fill, inFront <| stickyHeader theme titleElems ] <|
         stickyHeader theme titleElems
             :: [ subcolumnsEl ]
 
@@ -286,7 +313,7 @@ timeCell theme window =
             cellHeight theme window
     in
     row
-        [ width fill, height <| px h, moveDown <| toFloat theme.timeCell.fontSize / 2 ]
+        [ width fill, height <| px h, moveDown <| toFloat theme.timeCell.fontSize / 2, paddingEach <| theme.timeCell.padding ]
     <|
         [ el [ alignRight, Font.size theme.timeCell.fontSize, alignBottom ] <| text <| TimeWindow.formatStart window ]
 
