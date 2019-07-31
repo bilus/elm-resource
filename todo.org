@@ -27,7 +27,8 @@
 * DONE Grid doesn't cover full width                                    :BUG:
   CLOSED: [2019-07-31 Wed 09:43]
 
-* TODO Need vertical column separators
+* DONE Need vertical column separators
+  CLOSED: [2019-07-31 Wed 17:20]
 * TODO Need to visualize cells that are partially outside window (e.g. their end isn't visible)
 * TODO No way to resize cells if they get too short :BUG
 * TODO Scaling half-hour hour day week month

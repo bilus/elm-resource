@@ -137,12 +137,17 @@ toColor color =
 sheetFrame : Theme -> Sheet -> Element Sheet.Msg
 sheetFrame theme sheet =
     let
+        colSeparator =
+            column [ width <| px 1, height fill, Border.solid, Border.widthEach { edges | right = 1 }, Border.color <| rgb 0.9 0.9 0.9 ]
+                []
+
         cols =
             sheet.columns
                 |> List.indexedMap
                     (\i column ->
                         anyColumn theme sheet (Sheet.makeColumnRef i) column
                     )
+                |> List.intersperse colSeparator
 
         fillerHeader =
             stickyHeader theme []
