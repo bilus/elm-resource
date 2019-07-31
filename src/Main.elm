@@ -42,6 +42,41 @@ type alias Flags =
     ()
 
 
+stressTestSchedule =
+    [ newSchedule
+        (newResource (ResourceId "id1") "ZS 672AE")
+        [ Schedule.newReservation (ReservationId "r1") (Time.millisToPosix (1000 * 60 * 30)) (hours 4) ]
+    , newSchedule
+        (newResource (ResourceId "id1") "ZS 8127S")
+        [ Schedule.newReservation (ReservationId "r2") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
+        , Schedule.newReservation (ReservationId "r3") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
+        ]
+    , newSchedule
+        (newResource (ResourceId "id1") "ZS 1234")
+        (List.range
+            0
+            1000
+            |> List.map (\i -> Schedule.newReservation (ReservationId "r4") (Time.millisToPosix <| i * 5 * 1000 * 60) (minutes <| toFloat <| 5))
+        )
+    , newSchedule
+        (newResource (ResourceId "id1") "ZS AAAAA")
+        [ Schedule.newReservation (ReservationId "r5") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
+        , Schedule.newReservation (ReservationId "r6") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
+        , Schedule.newReservation (ReservationId "r7") (Time.millisToPosix (1000 * 60 * 360)) (hours 2)
+        , Schedule.newReservation (ReservationId "r7") (Time.millisToPosix (36 * 60 * 60 * 1000 + 1000 * 60 * 360)) (hours 2)
+        ]
+    ]
+        ++ (List.range 0 100
+                |> List.map
+                    (\i ->
+                        newSchedule
+                            (newResource (ResourceId "id1") "ZS AAAAA")
+                            [ Schedule.newReservation (ReservationId <| "rx" ++ String.fromInt i) (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
+                            ]
+                    )
+           )
+
+
 sampleSchedule =
     [ newSchedule
         (newResource (ResourceId "id1") "ZS 672AE")
@@ -68,11 +103,17 @@ init : Flags -> ( Model, Cmd Msg )
 init _ =
     let
         window =
-            TimeWindow.make (Time.millisToPosix 0) (Duration.hours 24)
+            -- TimeWindow.make (Time.millisToPosix (30 * 60 * 1000)) (Duration.hours 2)
+            TimeWindow.make (Time.millisToPosix (0 * 60 * 1000)) (Duration.hours 24)
+
+        slotCount =
+            7 * 8
     in
     ( { currPage = InputPage
-      , sheet = Sheet.make 48 window sampleSchedule
-      , theme = Theme.defaultTheme 48 window
+
+      -- , sheet = Sheet.make 48 window sampleSchedule
+      , sheet = Sheet.make slotCount window sampleSchedule
+      , theme = Theme.defaultTheme slotCount window
       }
     , Cmd.none
     )
