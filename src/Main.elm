@@ -44,22 +44,22 @@ type alias Flags =
 
 stressTestSchedule =
     [ newSchedule
-        (newResource (ResourceId "id1") "ZS 672AE")
+        (newResource (ResourceId "id1") "ZS 672AE" 0)
         [ Schedule.newReservation (ReservationId "r1") (Time.millisToPosix (1000 * 60 * 30)) (hours 4) ]
     , newSchedule
-        (newResource (ResourceId "id1") "ZS 8127S")
+        (newResource (ResourceId "id1") "ZS 8127S" 1)
         [ Schedule.newReservation (ReservationId "r2") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
         , Schedule.newReservation (ReservationId "r3") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
         ]
     , newSchedule
-        (newResource (ResourceId "id1") "ZS 1234")
+        (newResource (ResourceId "id1") "ZS 1234" 2)
         (List.range
             0
             1000
             |> List.map (\i -> Schedule.newReservation (ReservationId "r4") (Time.millisToPosix <| i * 5 * 1000 * 60) (minutes <| toFloat <| 5))
         )
     , newSchedule
-        (newResource (ResourceId "id1") "ZS AAAAA")
+        (newResource (ResourceId "id1") "ZS AAAAA" 3)
         [ Schedule.newReservation (ReservationId "r5") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
         , Schedule.newReservation (ReservationId "r6") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
         , Schedule.newReservation (ReservationId "r7") (Time.millisToPosix (1000 * 60 * 360)) (hours 2)
@@ -70,7 +70,7 @@ stressTestSchedule =
                 |> List.map
                     (\i ->
                         newSchedule
-                            (newResource (ResourceId "id1") "ZS AAAAA")
+                            (newResource (ResourceId "id1") "ZS AAAAA" (4 + i))
                             [ Schedule.newReservation (ReservationId <| "rx" ++ String.fromInt i) (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
                             ]
                     )
@@ -79,19 +79,19 @@ stressTestSchedule =
 
 sampleSchedule =
     [ newSchedule
-        (newResource (ResourceId "id1") "ZS 672AE")
+        (newResource (ResourceId "id1") "ZS 672AE" 0)
         [ Schedule.newReservation (ReservationId "r1") (Time.millisToPosix (1000 * 60 * 30)) (hours 4) ]
     , newSchedule
-        (newResource (ResourceId "id1") "ZS 8127S")
+        (newResource (ResourceId "id1") "ZS 8127S" 1)
         [ Schedule.newReservation (ReservationId "r2") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
         , Schedule.newReservation (ReservationId "r3") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
         ]
     , newSchedule
-        (newResource (ResourceId "id1") "ZS 1234")
+        (newResource (ResourceId "id1") "ZS 1234" 2)
         [ Schedule.newReservation (ReservationId "r4") (Time.millisToPosix 0) (minutes 15)
         ]
     , newSchedule
-        (newResource (ResourceId "id1") "ZS AAAAA")
+        (newResource (ResourceId "id1") "ZS AAAAA" 3)
         [ Schedule.newReservation (ReservationId "r5") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
         , Schedule.newReservation (ReservationId "r6") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
         , Schedule.newReservation (ReservationId "r7") (Time.millisToPosix (1000 * 60 * 360)) (hours 2)

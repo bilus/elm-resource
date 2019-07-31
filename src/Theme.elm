@@ -11,9 +11,11 @@ import Element.Events as Events
 import Element.Font as Font exposing (Font)
 import Element.Lazy as Lazy
 import Html.Attributes exposing (style)
+import List.Extra
 import Schedule
 import Sheet exposing (Sheet)
 import TimeWindow exposing (TimeWindow)
+import Util.Flip exposing (flip)
 import Util.Selectable as Selectable
 
 
@@ -26,12 +28,31 @@ edges =
 
 
 type alias Theme =
-    { defaultCell : { heightPx : Int, widthPx : Int, pixelsPerSecond : Float }
-    , columns : Array { bgColor : Color }
-    , header : { heightPx : Int, padding : Int, fontFamily : List Font, fontSize : Int, backgroundColor : Color, textColor : Color }
-    , cells : { fontFamily : List Font, fontSize : Int, backgroundColor : Color, textColor : Color }
-    , timeCell : { fontSize : Int, widthPx : Int, padding : Padding }
+    { defaultCell :
+        { heightPx : Int
+        , widthPx : Int
+        , pixelsPerSecond : Float
+        }
+    , columns : Array ColumnStyle
+    , defaultColumnStyle : ColumnStyle
+    , header :
+        { heightPx : Int
+        , padding : Int
+        , fontFamily : List Font
+        , fontSize : Int
+        , backgroundColor : Color
+        , textColor : Color
+        }
+    , timeCell :
+        { fontSize : Int
+        , widthPx : Int
+        , padding : Padding
+        }
     }
+
+
+type alias ColumnStyle =
+    { reservedCell : { backgroundColor : Color, textColor : Color } }
 
 
 type alias CellState s =
@@ -71,7 +92,7 @@ defaultTheme slotCount window =
             , Color.darkBrown
             ]
                 |> List.map toColor
-                |> List.map (\color -> { bgColor = color })
+                |> List.map (\color -> { reservedCell = { backgroundColor = color, textColor = Color.darkBrown |> toColor } })
                 |> Array.fromList
 
         defaultCellHeight =
@@ -102,16 +123,16 @@ defaultTheme slotCount window =
         , backgroundColor = rgba 0.8 0.8 0.8 0.8
         , textColor = rgb 0 0 0
         }
-    , cells =
-        { fontFamily = [ Font.typeface "Helvetica" ]
-        , fontSize = 20
-        , backgroundColor = Color.lightOrange |> toColor
-        , textColor = Color.darkBrown |> toColor
-        }
     , timeCell =
         { fontSize = 14
         , widthPx = 100
         , padding = { edges | right = 5 }
+        }
+    , defaultColumnStyle =
+        { reservedCell =
+            { backgroundColor = Color.lightOrange |> toColor
+            , textColor = Color.darkBrown |> toColor
+            }
         }
     }
 
@@ -132,6 +153,14 @@ toColor color =
             Color.toRgba color
     in
     rgba red green blue alpha
+
+
+getColumnStyle : Theme -> Int -> ColumnStyle
+getColumnStyle { columns, defaultColumnStyle } paletteIndex =
+    paletteIndex
+        |> modBy (Array.length columns)
+        |> flip Array.get columns
+        |> Maybe.withDefault defaultColumnStyle
 
 
 sheetFrame : Theme -> Sheet -> Element Sheet.Msg
@@ -252,6 +281,9 @@ resourceColumn theme sheet colRef resource subcolumns =
         titleElems =
             [ el [ centerX, centerY ] <| text title ]
 
+        columnStyle =
+            getColumnStyle theme (Schedule.getResourcePaletteIndex resource)
+
         elementGrid =
             subcolumns
                 |> List.indexedMap
@@ -266,7 +298,7 @@ resourceColumn theme sheet colRef resource subcolumns =
                                         selected =
                                             Just cellRef == sheet.selectedCell
                                     in
-                                    anyCell theme sheet cellRef cell { selected = selected }
+                                    anyCell theme columnStyle sheet cellRef cell { selected = selected }
                                 )
                     )
 
@@ -282,14 +314,14 @@ resourceColumn theme sheet colRef resource subcolumns =
             :: [ subcolumnsEl ]
 
 
-anyCell : Theme -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
-anyCell theme sheet cellRef cell state =
+anyCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
+anyCell theme columnStyle sheet cellRef cell state =
     case cell of
         Sheet.EmptyCell _ ->
-            emptyCell theme sheet cellRef cell state
+            emptyCell theme columnStyle sheet cellRef cell state
 
         Sheet.ReservedCell _ ->
-            reservedCell theme sheet cellRef cell state
+            reservedCell theme columnStyle sheet cellRef cell state
 
 
 stickyHeader : Theme -> List (Element Sheet.Msg) -> Element Sheet.Msg
@@ -323,8 +355,8 @@ timeCell theme window =
         [ el [ alignRight, Font.size theme.timeCell.fontSize, alignBottom ] <| text <| TimeWindow.formatStart window ]
 
 
-emptyCell : Theme -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
-emptyCell theme sheet cellRef cell state =
+emptyCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
+emptyCell theme columnStyle sheet cellRef cell state =
     let
         attrs =
             [ Events.onClick (Sheet.CellClicked cell cellRef) ]
@@ -333,8 +365,8 @@ emptyCell theme sheet cellRef cell state =
         Sheet.cellWindow cell
 
 
-reservedCell : Theme -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
-reservedCell theme sheet cellRef cell { selected } =
+reservedCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
+reservedCell theme columnStyle sheet cellRef cell { selected } =
     let
         topHandle =
             cellResizeHandle theme sheet (Sheet.CellStart cellRef)
@@ -354,7 +386,7 @@ reservedCell theme sheet cellRef cell { selected } =
                 []
 
         attrs =
-            Background.color theme.cells.backgroundColor
+            Background.color columnStyle.reservedCell.backgroundColor
                 :: Border.rounded 3
                 :: Border.shadow { offset = ( 1, 1 ), size = 0.005, blur = 5.0, color = rgb 0.5 0.5 0.5 }
                 :: Events.onClick (Sheet.CellClicked cell cellRef)

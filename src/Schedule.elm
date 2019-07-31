@@ -1,4 +1,4 @@
-module Schedule exposing (Reservation(..), ReservationId(..), Resource, ResourceId(..), Schedule, getReservationId, getReservations, getResource, getResourceName, getWindow, isConflict, isReservationOverlapping, mapReservations, moveReservationEnd, moveReservationStart, newReservation, newResource, newSchedule, sortReservations)
+module Schedule exposing (Reservation(..), ReservationId(..), Resource, ResourceId(..), Schedule, getReservationId, getReservations, getResource, getResourceName, getResourcePaletteIndex, getWindow, isConflict, isReservationOverlapping, mapReservations, moveReservationEnd, moveReservationStart, newReservation, newResource, newSchedule, sortReservations)
 
 import Duration as Duration exposing (Duration)
 import List.Extra
@@ -11,17 +11,22 @@ type ResourceId
 
 
 type Resource
-    = Resource { id : ResourceId, name : String }
+    = Resource { id : ResourceId, name : String, paletteIndex : Int }
 
 
-newResource : ResourceId -> String -> Resource
-newResource id name =
-    Resource { id = id, name = name }
+newResource : ResourceId -> String -> Int -> Resource
+newResource id name paletteIndex =
+    Resource { id = id, name = name, paletteIndex = paletteIndex }
 
 
 getResourceName : Resource -> String
 getResourceName (Resource { name }) =
     name
+
+
+getResourcePaletteIndex : Resource -> Int
+getResourcePaletteIndex (Resource { paletteIndex }) =
+    paletteIndex
 
 
 type Reservation
