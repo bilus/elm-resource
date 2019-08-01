@@ -72,7 +72,13 @@ defaultTheme : Int -> TimeWindow -> Theme
 defaultTheme slotCount window =
     let
         columns =
-            [ Color.orange
+            [ Color.darkOrange
+            , Color.darkYellow
+            , Color.darkGreen
+            , Color.darkBlue
+            , Color.darkPurple
+            , Color.darkBrown
+            , Color.orange
             , Color.yellow
             , Color.green
             , Color.blue
@@ -84,13 +90,8 @@ defaultTheme slotCount window =
             , Color.lightBlue
             , Color.lightPurple
             , Color.lightBrown
-            , Color.darkOrange
-            , Color.darkYellow
-            , Color.darkGreen
-            , Color.darkBlue
-            , Color.darkPurple
-            , Color.darkBrown
             ]
+                |> List.map (setAlpha 0.5)
                 |> List.map toColor
                 |> List.map (\color -> { reservedCell = { backgroundColor = color, textColor = Color.darkBrown |> toColor } })
                 |> Array.fromList
@@ -144,6 +145,15 @@ cellHeight theme window =
         |> Duration.inSeconds
         |> (*) theme.defaultCell.pixelsPerSecond
         |> round
+
+
+setAlpha : Float -> Color.Color -> Color.Color
+setAlpha alpha color =
+    let
+        rgba =
+            Color.toRgba color
+    in
+    Color.fromRgba { rgba | alpha = alpha }
 
 
 toColor : Color.Color -> Color

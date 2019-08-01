@@ -29,7 +29,8 @@
 
 * DONE Need vertical column separators
   CLOSED: [2019-07-31 Wed 17:20]
-* TODO Resource colors.
+* DONE Resource colors.
+  CLOSED: [2019-08-01 Thu 08:08]
 * TODO Need to visualize cells that are partially outside window (e.g. their end isn't visible)
 * TODO No way to resize cells if they get too short :BUG
 * TODO Scaling half-hour hour day week month
