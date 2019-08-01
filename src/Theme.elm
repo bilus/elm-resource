@@ -421,13 +421,15 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
             Sheet.cellWindow cell
 
         visibleWindow =
-            TimeWindow.intersection sheet.window <| window
-
-        label =
-            formatCellLabel window
+            TimeWindow.intersection sheet.window <|
+                window
 
         contents =
-            el [ Font.color (rgba 0.1 0.1 0.1 0.6) ] <| text label
+            el
+                [ Font.color (rgba 0.1 0.1 0.1 0.6) ]
+            <|
+                text <|
+                    formatCellLabel theme sheet window
     in
     case visibleWindow of
         Just wnd ->
@@ -437,17 +439,35 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
             none
 
 
-formatCellLabel : TimeWindow -> String
-formatCellLabel window =
+formatCellLabel : Theme -> Sheet -> TimeWindow -> String
+formatCellLabel theme sheet window =
     -- TODO: Make zone configurable
     let
         start =
-            TimeWindow.getStart window |> Util.Time.formatTime Time.utc
+            TimeWindow.getStart window
 
         end =
-            TimeWindow.getEnd window |> Util.Time.formatTime Time.utc
+            TimeWindow.getEnd window
     in
-    start ++ "-" ++ end
+    if TimeWindow.contains sheet.window window then
+        let
+            startTime =
+                start |> Util.Time.formatTime Time.utc
+
+            endTime =
+                end |> Util.Time.formatTime Time.utc
+
+            isRegular =
+                modBy theme.defaultCell.heightPx (cellHeight theme window) == 0
+        in
+        if isRegular then
+            startTime
+
+        else
+            startTime ++ " – " ++ endTime
+
+    else
+        start |> Util.Time.formatDateTime Time.utc
 
 
 unselectable : List (Attribute Sheet.Msg)

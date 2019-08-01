@@ -1,4 +1,4 @@
-module TimeWindow exposing (TimeWindow, compare, gap, getDuration, getEnd, getStart, intersection, isEmpty, make, moveEnd, moveStart, overlaps, split)
+module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, intersection, isEmpty, make, moveEnd, moveStart, overlaps, split)
 
 import Duration exposing (Duration, seconds)
 import Time exposing (Posix)
@@ -57,45 +57,48 @@ offsetTime t ms =
 
 
 overlaps : TimeWindow -> TimeWindow -> Bool
-overlaps (TimeWindow w1) (TimeWindow w2) =
+overlaps w1 w2 =
     let
-        start1 =
-            Time.posixToMillis w1.start
+        m1 =
+            toMillis w1
 
-        end1 =
-            start1 + (w1.duration |> Duration.inMilliseconds |> round)
-
-        start2 =
-            Time.posixToMillis w2.start
-
-        end2 =
-            start2 + (w2.duration |> Duration.inMilliseconds |> round)
+        m2 =
+            toMillis w2
     in
-    end1 > start2 && end2 > start1
+    m1.end > m2.start && m2.end > m1.start
+
+
+
+{- w1 contains w2 -}
+
+
+contains : TimeWindow -> TimeWindow -> Bool
+contains w1 w2 =
+    let
+        m1 =
+            toMillis w1
+
+        m2 =
+            toMillis w2
+    in
+    m2.start >= m1.start && m2.end <= m1.end
 
 
 intersection : TimeWindow -> TimeWindow -> Maybe TimeWindow
-intersection (TimeWindow w1) (TimeWindow w2) =
-    let
-        start1 =
-            Time.posixToMillis w1.start
-
-        end1 =
-            start1 + (w1.duration |> Duration.inMilliseconds |> round)
-
-        start2 =
-            Time.posixToMillis w2.start
-
-        end2 =
-            start2 + (w2.duration |> Duration.inMilliseconds |> round)
-    in
-    if end1 > start2 && end2 > start1 then
+intersection w1 w2 =
+    if overlaps w1 w2 then
         let
+            m1 =
+                toMillis w1
+
+            m2 =
+                toMillis w2
+
             start =
-                max start1 start2
+                max m1.start m2.start
 
             end =
-                min end1 end2
+                min m1.end m2.end
 
             duration =
                 (end - start)
@@ -106,6 +109,18 @@ intersection (TimeWindow w1) (TimeWindow w2) =
 
     else
         Nothing
+
+
+toMillis : TimeWindow -> { start : Int, end : Int }
+toMillis (TimeWindow w) =
+    let
+        start =
+            Time.posixToMillis w.start
+
+        end =
+            start + (w.duration |> Duration.inMilliseconds |> round)
+    in
+    { start = start, end = end }
 
 
 compare : TimeWindow -> TimeWindow -> Order

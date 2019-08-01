@@ -88,13 +88,15 @@ sampleSchedule =
         ]
     , newSchedule
         (newResource (ResourceId "id1") "ZS 1234" 2)
-        [ Schedule.newReservation (ReservationId "r4") (Time.millisToPosix 0) (minutes 15)
+        [ Schedule.newReservation (ReservationId "r4") (Time.millisToPosix 0) (minutes 35)
         ]
     , newSchedule
         (newResource (ResourceId "id1") "ZS AAAAA" 3)
         [ Schedule.newReservation (ReservationId "r5") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
         , Schedule.newReservation (ReservationId "r6") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
         , Schedule.newReservation (ReservationId "r7") (Time.millisToPosix (1000 * 60 * 360)) (hours 2)
+        , Schedule.newReservation (ReservationId "r8") (Time.millisToPosix (1000 * 60 * 360)) (minutes 2)
+        , Schedule.newReservation (ReservationId "r9") (Time.millisToPosix (1000 * 60 * 480)) (minutes 45)
         ]
     ]
 
@@ -104,10 +106,10 @@ init _ =
     let
         window =
             -- TimeWindow.make (Time.millisToPosix (30 * 60 * 1000)) (Duration.hours 2)
-            TimeWindow.make (Time.millisToPosix (0 * 60 * 1000)) (Duration.hours 24)
+            TimeWindow.make (Time.millisToPosix (30 * 60 * 1000)) (Duration.hours 24)
 
         slotCount =
-            7 * 8
+            48
     in
     ( { currPage = InputPage
 

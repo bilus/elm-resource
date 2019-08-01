@@ -6,6 +6,10 @@ import Html.Attributes exposing (property)
 import Json.Encode
 
 
+
+{- Specifies messages sent on various drag & drop events. -}
+
+
 type alias Config msg draggable droppable =
     { starting : draggable -> msg
     , started : msg
