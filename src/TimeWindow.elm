@@ -1,4 +1,4 @@
-module TimeWindow exposing (TimeWindow, compare, formatStart, gap, getDuration, getEnd, getStart, intersection, isEmpty, make, moveEnd, moveStart, overlaps, split)
+module TimeWindow exposing (TimeWindow, compare, gap, getDuration, getEnd, getStart, intersection, isEmpty, make, moveEnd, moveStart, overlaps, split)
 
 import Duration exposing (Duration, seconds)
 import Time exposing (Posix)
@@ -44,28 +44,6 @@ getEnd (TimeWindow { start, duration }) =
 getDuration : TimeWindow -> Duration
 getDuration (TimeWindow { duration }) =
     duration
-
-
-
--- TODO: Obsolete.
-
-
-formatStart : TimeWindow -> String
-formatStart (TimeWindow { start }) =
-    let
-        zone =
-            Time.utc
-
-        -- TODO: Make zone configurable or use CEST
-        hours =
-            String.fromInt (Time.toHour zone start)
-                |> String.padLeft 2 '0'
-
-        minutes =
-            String.fromInt (Time.toMinute zone start)
-                |> String.padLeft 2 '0'
-    in
-    hours ++ ":" ++ minutes
 
 
 offsetTime : Posix -> Float -> Posix

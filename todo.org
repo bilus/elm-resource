@@ -32,6 +32,14 @@
 * DONE Resource colors.
   CLOSED: [2019-08-01 Thu 08:08]
 * TODO Need to visualize cells that are partially outside window (e.g. their end isn't visible)
+** DONE Show from - to on cell
+   CLOSED: [2019-08-01 Thu 08:42]
+** TODO If from or to outside the current window, format using the higher scale
+** TODO If = cell height, show only start
+** TODO If <= cell height
+** TODO Do not allow resizing
+* Day resolution Add <> for changing date + "today" button and + - buttons (15 minutes - 30 minutes - 1 hour)
+* Overview resoultions <> for changing
 * TODO No way to resize cells if they get too short :BUG
 * TODO Scaling half-hour hour day week month
 ** TODO Add scaling buttons at the top (

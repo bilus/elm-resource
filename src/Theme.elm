@@ -14,9 +14,11 @@ import Html.Attributes exposing (style)
 import List.Extra
 import Schedule
 import Sheet exposing (Sheet)
+import Time
 import TimeWindow exposing (TimeWindow)
 import Util.Flip exposing (flip)
 import Util.Selectable as Selectable
+import Util.Time
 
 
 type alias Padding =
@@ -362,7 +364,10 @@ timeCell theme window =
     row
         [ width fill, height <| px h, moveDown <| toFloat theme.timeCell.fontSize / 2, paddingEach <| theme.timeCell.padding ]
     <|
-        [ el [ alignRight, Font.size theme.timeCell.fontSize, alignBottom ] <| text <| TimeWindow.formatStart window ]
+        -- TODO: Make zone configurable
+        [ el [ alignRight, Font.size theme.timeCell.fontSize, alignBottom ] <|
+            (TimeWindow.getStart window |> Util.Time.formatTime Time.utc |> text)
+        ]
 
 
 emptyCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
@@ -371,8 +376,7 @@ emptyCell theme columnStyle sheet cellRef cell state =
         attrs =
             [ Events.onClick (Sheet.CellClicked cell cellRef) ]
     in
-    renderCell theme attrs <|
-        Sheet.cellWindow cell
+    renderCell theme attrs none <| Sheet.cellWindow cell
 
 
 reservedCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
@@ -399,6 +403,7 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
             Background.color columnStyle.reservedCell.backgroundColor
                 :: Border.rounded 3
                 :: Border.shadow { offset = ( 1, 1 ), size = 0.005, blur = 5.0, color = rgb 0.5 0.5 0.5 }
+                :: padding 2
                 :: Events.onClick (Sheet.CellClicked cell cellRef)
                 :: (if selected then
                         [ above <|
@@ -412,15 +417,37 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
                    )
                 ++ handles
 
+        window =
+            Sheet.cellWindow cell
+
         visibleWindow =
-            TimeWindow.intersection sheet.window <| Sheet.cellWindow cell
+            TimeWindow.intersection sheet.window <| window
+
+        label =
+            formatCellLabel window
+
+        contents =
+            el [ Font.color (rgba 0.1 0.1 0.1 0.6) ] <| text label
     in
     case visibleWindow of
-        Just window ->
-            renderCell theme attrs <| window
+        Just wnd ->
+            renderCell theme attrs contents <| wnd
 
         Nothing ->
             none
+
+
+formatCellLabel : TimeWindow -> String
+formatCellLabel window =
+    -- TODO: Make zone configurable
+    let
+        start =
+            TimeWindow.getStart window |> Util.Time.formatTime Time.utc
+
+        end =
+            TimeWindow.getEnd window |> Util.Time.formatTime Time.utc
+    in
+    start ++ "-" ++ end
 
 
 unselectable : List (Attribute Sheet.Msg)
@@ -470,7 +497,7 @@ cellResizeHandle theme sheet draggable =
     handle
 
 
-renderCell : Theme -> List (Attribute Sheet.Msg) -> TimeWindow -> Element Sheet.Msg
-renderCell theme attrs window =
+renderCell : Theme -> List (Attribute Sheet.Msg) -> Element Sheet.Msg -> TimeWindow -> Element Sheet.Msg
+renderCell theme attrs elem window =
     row [ paddingXY 0 1, width fill, height <| px <| cellHeight theme window ]
-        [ el ([ width fill, height fill, Font.size 12 ] ++ attrs) none ]
+        [ el ([ width fill, height fill, Font.size 12 ] ++ attrs) elem ]
