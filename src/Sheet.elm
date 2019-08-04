@@ -1,4 +1,4 @@
-module Sheet exposing (Cell(..), CellRef, Column, ColumnRef, Draggable(..), Droppable(..), Msg(..), Sheet, SubColumn, cellWindow, make, makeCellRef, makeColumnRef, subscribe, update)
+module Sheet exposing (Cell(..), CellRef, Column, ColumnRef, Draggable(..), Droppable(..), Layer, Msg(..), Sheet, cellWindow, make, makeCellRef, makeColumnRef, subscribe, update)
 
 import Browser.Events
 import DragDrop
@@ -22,11 +22,11 @@ type alias Sheet =
 
 type alias Column =
     { resource : Resource
-    , subcolumns : List SubColumn
+    , layers : List Layer
     }
 
 
-type alias SubColumn =
+type alias Layer =
     List Cell
 
 
@@ -78,8 +78,8 @@ type CellRef
 
 
 makeCellRef : ColumnRef -> Int -> Int -> CellRef
-makeCellRef (ColumnRef colIndex) subColIndex cellIndex =
-    CellRef colIndex subColIndex cellIndex
+makeCellRef (ColumnRef colIndex) layerIndex cellIndex =
+    CellRef colIndex layerIndex cellIndex
 
 
 make : TimeWindow -> List Schedule -> Sheet
@@ -147,11 +147,11 @@ reservationIdToCellRef columns reservationId =
 
 
 findByRef : CellRef -> List Column -> Maybe Cell
-findByRef (CellRef colIndex subColIndex cellIndex) columns =
+findByRef (CellRef colIndex layerIndex cellIndex) columns =
     columns
         |> List.Extra.getAt colIndex
-        |> Maybe.map .subcolumns
-        |> Maybe.andThen (List.Extra.getAt subColIndex)
+        |> Maybe.map .layers
+        |> Maybe.andThen (List.Extra.getAt layerIndex)
         |> Maybe.andThen (List.Extra.getAt cellIndex)
 
 
@@ -159,22 +159,22 @@ findCellRef : (Cell -> Bool) -> List Column -> Maybe CellRef
 findCellRef pred =
     let
         findCellRefColumn : Int -> Column -> Maybe CellRef
-        findCellRefColumn colIndex { subcolumns } =
-            subcolumns
+        findCellRefColumn colIndex { layers } =
+            layers
                 |> List.Extra.indexedFoldr
-                    (\subColIndex cells match ->
+                    (\layerIndex cells match ->
                         if isJust match then
                             match
 
                         else
                             cells
-                                |> findCellRefCells colIndex subColIndex
+                                |> findCellRefCells colIndex layerIndex
                     )
                     Nothing
 
         findCellRefCells : Int -> Int -> List Cell -> Maybe CellRef
-        findCellRefCells colIndex subColIndex =
-            Maybe.map (CellRef colIndex subColIndex)
+        findCellRefCells colIndex layerIndex =
+            Maybe.map (CellRef colIndex layerIndex)
                 << List.Extra.indexedFoldr
                     (\cellIndex cell match ->
                         if isJust match then
@@ -219,8 +219,8 @@ makeColumns window schedules =
 getSchedules : Sheet -> List Schedule
 getSchedules { columns } =
     let
-        getSchedule { resource, subcolumns } =
-            subcolumns
+        getSchedule { resource, layers } =
+            layers
                 |> List.concatMap
                     (List.concatMap
                         (\cell ->
@@ -365,16 +365,16 @@ offsetBy d t =
 
 
 updateCell : CellRef -> (Cell -> Cell) -> Sheet -> Sheet
-updateCell (CellRef colIndex subColIndex cellIndex) f sheet =
+updateCell (CellRef colIndex layerIndex cellIndex) f sheet =
     { sheet
         | columns =
             sheet.columns
                 |> List.Extra.updateAt colIndex
                     (\column ->
                         { column
-                            | subcolumns =
-                                column.subcolumns
-                                    |> List.Extra.updateAt subColIndex
+                            | layers =
+                                column.layers
+                                    |> List.Extra.updateAt layerIndex
                                         (List.Extra.updateAt cellIndex f)
                         }
                     )
@@ -384,19 +384,19 @@ updateCell (CellRef colIndex subColIndex cellIndex) f sheet =
 makeColumn : TimeWindow -> Schedule -> Column
 makeColumn window schedule =
     { resource = Schedule.getResource schedule
-    , subcolumns = makeSubcolumns window <| Schedule.getReservations schedule
+    , layers = makeLayers window <| Schedule.getReservations schedule
     }
 
 
-makeSubcolumns : TimeWindow -> List Reservation -> List SubColumn
-makeSubcolumns window reservations =
+makeLayers : TimeWindow -> List Reservation -> List Layer
+makeLayers window reservations =
     reservations
         |> List.Extra.gatherWith Schedule.isConflict
         |> List.map (\( x, xs ) -> x :: xs)
         |> slice
         -- Ignore reservations outside the current window
         |> List.map (List.filter (TimeWindow.overlaps window << Schedule.getWindow))
-        -- Make each sub-column continuous by filling gaps with empty cells
+        -- Make each layer continuous by filling gaps with empty cells
         |> List.map (fillInGaps window << List.map ReservedCell << Schedule.sortReservations)
 
 

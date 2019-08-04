@@ -15,7 +15,7 @@ import Iso8601
 import List.Extra
 import Maybe.Extra
 import Schedule exposing (Reservation(..), ReservationId(..), Resource, ResourceId(..), Schedule, mapReservations, newResource, newSchedule)
-import Sheet exposing (Cell(..), CellRef, Column, ColumnRef, Draggable(..), Droppable(..), Sheet, SubColumn)
+import Sheet exposing (Cell(..), CellRef, Column, ColumnRef, Draggable(..), Droppable(..), Sheet)
 import Theme exposing (Theme)
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow, make)

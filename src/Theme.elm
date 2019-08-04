@@ -265,7 +265,7 @@ dragDropGrid theme sheet =
 
 
 resourceColumn : Theme -> Sheet -> Sheet.ColumnRef -> Sheet.Column -> Element Sheet.Msg
-resourceColumn theme sheet colRef { resource, subcolumns } =
+resourceColumn theme sheet colRef { resource, layers } =
     let
         title =
             Schedule.getResourceName resource
@@ -277,15 +277,15 @@ resourceColumn theme sheet colRef { resource, subcolumns } =
             getColumnStyle theme (Schedule.getResourcePaletteIndex resource)
 
         elementGrid =
-            subcolumns
+            layers
                 |> List.indexedMap
-                    (\subColIndex subcolumn ->
-                        subcolumn
+                    (\layerIndex layer ->
+                        layer
                             |> List.indexedMap
                                 (\cellIndex cell ->
                                     let
                                         cellRef =
-                                            Sheet.makeCellRef colRef subColIndex cellIndex
+                                            Sheet.makeCellRef colRef layerIndex cellIndex
 
                                         selected =
                                             Just cellRef == sheet.selectedCell
@@ -294,15 +294,15 @@ resourceColumn theme sheet colRef { resource, subcolumns } =
                                 )
                     )
 
-        subcolumnsEl =
+        layersEl =
             row [ width fill, height fill, paddingXY 1 0 ] <|
-                List.map subcolumnEl elementGrid
+                List.map layerEl elementGrid
 
-        subcolumnEl els =
+        layerEl els =
             column [ width fill, height fill ] <| els
     in
     column [ width <| px theme.defaultCell.widthPx, height fill, inFront <| stickyHeader theme titleElems ] <|
-        [ stickyHeader theme titleElems, subcolumnsEl ]
+        [ stickyHeader theme titleElems, layersEl ]
 
 
 timeColumn : Theme -> Element Sheet.Msg
