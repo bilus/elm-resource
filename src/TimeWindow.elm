@@ -1,4 +1,4 @@
-module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, intersection, isEmpty, make, moveEnd, moveStart, overlaps, split)
+module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, intersection, isEmpty, make, moveEnd, moveStart, overlaps, split, substract)
 
 import Duration exposing (Duration, seconds)
 import Time exposing (Posix)
@@ -109,6 +109,54 @@ intersection w1 w2 =
 
     else
         Nothing
+
+
+substract : TimeWindow -> TimeWindow -> ( Maybe TimeWindow, Maybe TimeWindow )
+substract w1 w2 =
+    if overlaps w1 w2 then
+        let
+            m1 =
+                toMillis w1
+
+            m2 =
+                toMillis w2
+
+            ( start1, start2 ) =
+                sortTuple ( m1.start, m2.start )
+
+            ( end1, end2 ) =
+                sortTuple ( m1.end, m2.end )
+
+            duration1 =
+                start2 - start1
+
+            duration2 =
+                end2 - end1
+        in
+        ( if duration1 > 0 then
+            Just <| make (start1 |> Time.millisToPosix) (duration1 |> toFloat |> Duration.milliseconds)
+
+          else
+            Nothing
+        , if duration2 > 0 then
+            Just <| make (start2 |> Time.millisToPosix) (duration2 |> toFloat |> Duration.milliseconds)
+
+          else
+            Nothing
+        )
+
+    else
+        ( Nothing, Nothing )
+
+
+{-| -}
+sortTuple : ( comparable, comparable ) -> ( comparable, comparable )
+sortTuple ( a, b ) =
+    if a > b then
+        ( b, a )
+
+    else
+        ( a, b )
 
 
 toMillis : TimeWindow -> { start : Int, end : Int }
