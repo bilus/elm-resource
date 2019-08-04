@@ -3,15 +3,13 @@ module Theme exposing (Theme, defaultTheme, emptyCell, reservedCell, resourceCol
 import Array exposing (Array)
 import Color
 import DragDrop
-import Duration exposing (Duration)
+import Duration
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font exposing (Font)
-import Element.Lazy as Lazy
 import Html.Attributes exposing (style)
-import List.Extra
 import Schedule
 import Sheet exposing (Sheet)
 import Time
@@ -25,6 +23,7 @@ type alias Padding =
     { top : Int, right : Int, bottom : Int, left : Int }
 
 
+edges : { top : Int, right : Int, bottom : Int, left : Int }
 edges =
     { top = 0, right = 0, bottom = 0, left = 0 }
 
@@ -388,41 +387,10 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
         bottomHandle =
             cellResizeHandle theme sheet (Sheet.CellEnd cellRef)
 
-        handles =
-            if selected then
-                [ above <|
-                    topHandle
-                , below <|
-                    bottomHandle
-                ]
-
-            else
-                []
-
         attrs =
             Background.color columnStyle.reservedCell.backgroundColor
-                :: Border.rounded 3
-                :: Border.shadow { offset = ( 1, 1 ), size = 0.005, blur = 5.0, color = rgb 0.5 0.5 0.5 }
                 :: padding 2
-                :: Events.onClick (Sheet.CellClicked cell cellRef)
-                :: (if selected then
-                        [ above <|
-                            topHandle
-                        , below <|
-                            bottomHandle
-                        ]
-
-                    else
-                        []
-                   )
-                ++ handles
-
-        window =
-            Sheet.cellWindow cell
-
-        visibleWindow =
-            TimeWindow.intersection sheet.window <|
-                window
+                :: [ Events.onClick (Sheet.CellClicked cell cellRef) ]
 
         contents =
             el
@@ -430,13 +398,67 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
             <|
                 text <|
                     formatCellLabel theme sheet window
+
+        window =
+            Sheet.cellWindow cell
+
+        maybeVisibleWindow =
+            TimeWindow.intersection sheet.window <|
+                window
     in
-    case visibleWindow of
-        Just wnd ->
-            renderCell theme attrs contents <| wnd
+    case maybeVisibleWindow of
+        Just visibleWindow ->
+            let
+                ( topOutlier, bottomOutlier ) =
+                    TimeWindow.substract window visibleWindow
+
+                top =
+                    case ( selected, topOutlier ) of
+                        ( _, Just tow ) ->
+                            [ above <| renderOutlier theme columnStyle tow 0 ]
+
+                        ( True, Nothing ) ->
+                            [ above <| topHandle ]
+
+                        ( False, Nothing ) ->
+                            []
+
+                bottom =
+                    case ( selected, bottomOutlier ) of
+                        ( _, Just bow ) ->
+                            [ below <| renderOutlier theme columnStyle bow pi ]
+
+                        ( True, Nothing ) ->
+                            [ below <| bottomHandle ]
+
+                        ( False, Nothing ) ->
+                            []
+            in
+            renderCell theme (attrs ++ top ++ bottom) contents <| visibleWindow
 
         Nothing ->
             none
+
+
+renderOutlier : Theme -> ColumnStyle -> TimeWindow -> Float -> Element Sheet.Msg
+renderOutlier theme columnStyle _ angle =
+    let
+        noColor =
+            rgba 1 1 1 0
+    in
+    row
+        [ paddingXY 0 1
+        , width fill
+        , height <| px <| theme.defaultCell.heightPx
+        , Background.gradient
+            { angle = angle
+            , steps =
+                [ columnStyle.reservedCell.backgroundColor
+                , noColor
+                ]
+            }
+        ]
+        []
 
 
 formatCellLabel : Theme -> Sheet -> TimeWindow -> String

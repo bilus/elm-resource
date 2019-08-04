@@ -43,13 +43,14 @@
 ** TODO Do not allow resizing
 * Day resolution Add <> for changing date + "today" button and + - buttons (15 minutes - 30 minutes - 1 hour)
 * Overview resoultions <> for changing
-* TODO No way to resize cells if they get too short :BUG
+* TODO No way to resize cells if they get too short :BUG:
+* TODO Right-most column's cells spill outside :BUG:
+
 * TODO Scaling half-hour hour day week month
 ** TODO Add scaling buttons at the top (
 ** TODO Need a way to see day / month boundaries
 ** TODO Properly format time column labels
 * TODO Dragging cells to move them
-
 * TODO Get rid of time cells (calculate them in view -> slot count unnecessary in sheet) OR put them in a separate field
 * TODO Grabbing & dragging doesn't always work (too close to the handle edge) -- mousedown + mousemove :BUG:
 * TODO Events are spilling through the bottom (stressTestSchedule)      :BUG:
