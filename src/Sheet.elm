@@ -1,11 +1,10 @@
-module Sheet exposing (Cell(..), CellRef, Column(..), ColumnRef, Draggable(..), Droppable(..), Msg(..), Sheet, SubColumn, cellWindow, getTimeSlots, make, makeCellRef, makeColumnRef, subscribe, update)
+module Sheet exposing (Cell(..), CellRef, Column, ColumnRef, Draggable(..), Droppable(..), Msg(..), Sheet, SubColumn, cellWindow, make, makeCellRef, makeColumnRef, subscribe, update)
 
 import Browser.Events
 import DragDrop
 import Duration exposing (Duration)
 import Json.Decode as Json
 import List.Extra
-import Monocle.Lens exposing (Lens)
 import Schedule exposing (Reservation, Resource, Schedule)
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow)
@@ -17,19 +16,14 @@ type alias Sheet =
     { window : TimeWindow
     , columns : List Column
     , dragDropState : DragDrop.State Draggable Droppable
-    , slotCount : Int
     , selectedCell : Maybe CellRef
     }
 
 
-type Column
-    = ResourceColumn
-        { resource : Resource
-        , subcolumns : List SubColumn
-        }
-    | TimeColumn
-        { slots : List TimeWindow
-        }
+type alias Column =
+    { resource : Resource
+    , subcolumns : List SubColumn
+    }
 
 
 type alias SubColumn =
@@ -88,12 +82,11 @@ makeCellRef (ColumnRef colIndex) subColIndex cellIndex =
     CellRef colIndex subColIndex cellIndex
 
 
-make : Int -> TimeWindow -> List Schedule -> Sheet
-make slotCount window schedules =
+make : TimeWindow -> List Schedule -> Sheet
+make window schedules =
     { window = window
-    , columns = makeColumns slotCount window schedules
+    , columns = makeColumns window schedules
     , dragDropState = DragDrop.init
-    , slotCount = slotCount
     , selectedCell = Nothing
     }
 
@@ -102,7 +95,7 @@ recalc : Sheet -> Sheet
 recalc sheet =
     let
         newColumns =
-            makeColumns sheet.slotCount sheet.window (getSchedules sheet)
+            makeColumns sheet.window (getSchedules sheet)
 
         remap : CellRef -> CellRef
         remap =
@@ -157,15 +150,7 @@ findByRef : CellRef -> List Column -> Maybe Cell
 findByRef (CellRef colIndex subColIndex cellIndex) columns =
     columns
         |> List.Extra.getAt colIndex
-        |> Maybe.map
-            (\column ->
-                case column of
-                    ResourceColumn { subcolumns } ->
-                        subcolumns
-
-                    TimeColumn _ ->
-                        []
-            )
+        |> Maybe.map .subcolumns
         |> Maybe.andThen (List.Extra.getAt subColIndex)
         |> Maybe.andThen (List.Extra.getAt cellIndex)
 
@@ -174,22 +159,17 @@ findCellRef : (Cell -> Bool) -> List Column -> Maybe CellRef
 findCellRef pred =
     let
         findCellRefColumn : Int -> Column -> Maybe CellRef
-        findCellRefColumn colIndex column =
-            case column of
-                ResourceColumn { subcolumns } ->
-                    subcolumns
-                        |> List.Extra.indexedFoldr
-                            (\subColIndex cells match ->
-                                if isJust match then
-                                    match
+        findCellRefColumn colIndex { subcolumns } =
+            subcolumns
+                |> List.Extra.indexedFoldr
+                    (\subColIndex cells match ->
+                        if isJust match then
+                            match
 
-                                else
-                                    cells
-                                        |> findCellRefCells colIndex subColIndex
-                            )
-                            Nothing
-
-                TimeColumn _ ->
+                        else
+                            cells
+                                |> findCellRefCells colIndex subColIndex
+                    )
                     Nothing
 
         findCellRefCells : Int -> Int -> List Cell -> Maybe CellRef
@@ -230,42 +210,30 @@ getReservation cell =
             Nothing
 
 
-makeColumns : Int -> TimeWindow -> List Schedule -> List Column
-makeColumns slotCount window schedules =
-    let
-        slots =
-            TimeWindow.split slotCount window
-
-        resourceColumns =
-            schedules
-                |> List.map (makeResourceColumn window)
-    in
-    makeTimeColumn slots :: resourceColumns
+makeColumns : TimeWindow -> List Schedule -> List Column
+makeColumns window schedules =
+    schedules
+        |> List.map (makeColumn window)
 
 
 getSchedules : Sheet -> List Schedule
 getSchedules { columns } =
     let
-        getSchedule column =
-            case column of
-                TimeColumn _ ->
-                    []
+        getSchedule { resource, subcolumns } =
+            subcolumns
+                |> List.concatMap
+                    (List.concatMap
+                        (\cell ->
+                            case cell of
+                                EmptyCell _ ->
+                                    []
 
-                ResourceColumn { resource, subcolumns } ->
-                    subcolumns
-                        |> List.concatMap
-                            (List.concatMap
-                                (\cell ->
-                                    case cell of
-                                        EmptyCell _ ->
-                                            []
-
-                                        ReservedCell reservation ->
-                                            [ reservation ]
-                                )
-                            )
-                        |> Schedule.newSchedule resource
-                        |> List.singleton
+                                ReservedCell reservation ->
+                                    [ reservation ]
+                        )
+                    )
+                |> Schedule.newSchedule resource
+                |> List.singleton
     in
     columns
         |> List.concatMap getSchedule
@@ -403,33 +371,21 @@ updateCell (CellRef colIndex subColIndex cellIndex) f sheet =
             sheet.columns
                 |> List.Extra.updateAt colIndex
                     (\column ->
-                        case column of
-                            ResourceColumn col ->
-                                ResourceColumn
-                                    { col
-                                        | subcolumns =
-                                            col.subcolumns
-                                                |> List.Extra.updateAt subColIndex
-                                                    (List.Extra.updateAt cellIndex f)
-                                    }
-
-                            TimeColumn col ->
-                                TimeColumn col
+                        { column
+                            | subcolumns =
+                                column.subcolumns
+                                    |> List.Extra.updateAt subColIndex
+                                        (List.Extra.updateAt cellIndex f)
+                        }
                     )
     }
 
 
-makeTimeColumn : List TimeWindow -> Column
-makeTimeColumn slots =
-    TimeColumn { slots = slots }
-
-
-makeResourceColumn : TimeWindow -> Schedule -> Column
-makeResourceColumn window schedule =
-    ResourceColumn
-        { resource = Schedule.getResource schedule
-        , subcolumns = makeSubcolumns window <| Schedule.getReservations schedule
-        }
+makeColumn : TimeWindow -> Schedule -> Column
+makeColumn window schedule =
+    { resource = Schedule.getResource schedule
+    , subcolumns = makeSubcolumns window <| Schedule.getReservations schedule
+    }
 
 
 makeSubcolumns : TimeWindow -> List Reservation -> List SubColumn
@@ -496,17 +452,3 @@ gapFiller c1 c2 =
     in
     TimeWindow.gap w1 w2
         |> Maybe.map EmptyCell
-
-
-getTimeSlots : Sheet -> List TimeWindow
-getTimeSlots { columns } =
-    columns
-        |> List.concatMap
-            (\column ->
-                case column of
-                    TimeColumn { slots } ->
-                        slots
-
-                    ResourceColumn _ ->
-                        []
-            )

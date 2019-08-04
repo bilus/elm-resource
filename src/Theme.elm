@@ -15,12 +15,15 @@ import Sheet exposing (Sheet)
 import Time
 import TimeWindow exposing (TimeWindow)
 import Util.Flip exposing (flip)
-import Util.Selectable as Selectable
 import Util.Time
 
 
 type alias Padding =
-    { top : Int, right : Int, bottom : Int, left : Int }
+    { top : Int
+    , right : Int
+    , bottom : Int
+    , left : Int
+    }
 
 
 edges : { top : Int, right : Int, bottom : Int, left : Int }
@@ -34,6 +37,7 @@ type alias Theme =
         , widthPx : Int
         , pixelsPerSecond : Float
         }
+    , slots : List TimeWindow
     , columns : Array ColumnStyle
     , defaultColumnStyle : ColumnStyle
     , header :
@@ -53,13 +57,18 @@ type alias Theme =
 
 
 type alias ColumnStyle =
-    { reservedCell : { backgroundColor : Color, textColor : Color } }
+    { reservedCell :
+        { backgroundColor : Color
+        , textColor : Color
+        }
+    }
 
 
 type alias CellState s =
     { s | selected : Bool }
 
 
+dragDropConfig : DragDrop.Config Sheet.Msg Sheet.Draggable Sheet.Droppable
 dragDropConfig =
     { starting = Sheet.DragDropStarting
     , started = Sheet.DragDropStarted
@@ -111,7 +120,8 @@ defaultTheme slotCount window =
         pixelsPerSecond =
             toFloat defaultCellHeight / cellDuration
     in
-    { defaultCell =
+    { slots = TimeWindow.split slotCount window
+    , defaultCell =
         { heightPx = defaultCellHeight
         , widthPx = 200
         , pixelsPerSecond = pixelsPerSecond
@@ -185,7 +195,7 @@ sheetFrame theme sheet =
             sheet.columns
                 |> List.indexedMap
                     (\i column ->
-                        anyColumn theme sheet (Sheet.makeColumnRef i) column
+                        resourceColumn theme sheet (Sheet.makeColumnRef i) column
                     )
                 |> List.intersperse colSeparator
 
@@ -208,7 +218,7 @@ sheetFrame theme sheet =
             else
                 none
         ]
-        (cols ++ [ filler ])
+        (timeColumn theme :: cols ++ [ filler ])
 
 
 sheetBackground : Theme -> Sheet -> Element Sheet.Msg
@@ -218,7 +228,7 @@ sheetBackground theme sheet =
             [ Border.color <| rgba 0.9 0.9 0.9 1, Border.width 1, Border.dotted ]
 
         guides =
-            List.range 1 sheet.slotCount
+            List.range 1 (List.length theme.slots)
                 |> List.map
                     (\_ -> row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ border) [])
     in
@@ -234,7 +244,7 @@ dragDropGrid theme sheet =
             [ Border.color <| rgba 0.7 0.9 0.9 1, Border.width 1, Border.dotted ]
 
         guides =
-            Sheet.getTimeSlots sheet
+            theme.slots
                 |> List.map
                     (\window ->
                         let
@@ -254,37 +264,8 @@ dragDropGrid theme sheet =
             :: guides
 
 
-anyColumn : Theme -> Sheet -> Sheet.ColumnRef -> Sheet.Column -> Element Sheet.Msg
-anyColumn theme sheet colRef col =
-    case col of
-        Sheet.TimeColumn { slots } ->
-            timeColumn theme slots
-
-        Sheet.ResourceColumn { resource, subcolumns } ->
-            resourceColumn theme sheet colRef resource subcolumns
-
-
-timeColumn : Theme -> List TimeWindow -> Element Sheet.Msg
-timeColumn theme slots =
-    let
-        title =
-            ""
-
-        titleElems =
-            [ el [ alignRight, centerY ] <| text title ]
-
-        slotRows =
-            slots
-                |> List.drop 1
-                |> List.map (timeCell theme)
-    in
-    column [ width <| px theme.timeCell.widthPx, height fill, inFront <| stickyHeader theme titleElems ] <|
-        stickyHeader theme titleElems
-            :: slotRows
-
-
-resourceColumn : Theme -> Sheet -> Sheet.ColumnRef -> Schedule.Resource -> List Sheet.SubColumn -> Element Sheet.Msg
-resourceColumn theme sheet colRef resource subcolumns =
+resourceColumn : Theme -> Sheet -> Sheet.ColumnRef -> Sheet.Column -> Element Sheet.Msg
+resourceColumn theme sheet colRef { resource, subcolumns } =
     let
         title =
             Schedule.getResourceName resource
@@ -321,8 +302,26 @@ resourceColumn theme sheet colRef resource subcolumns =
             column [ width fill, height fill ] <| els
     in
     column [ width <| px theme.defaultCell.widthPx, height fill, inFront <| stickyHeader theme titleElems ] <|
+        [ stickyHeader theme titleElems, subcolumnsEl ]
+
+
+timeColumn : Theme -> Element Sheet.Msg
+timeColumn theme =
+    let
+        title =
+            ""
+
+        titleElems =
+            [ el [ alignRight, centerY ] <| text title ]
+
+        slotRows =
+            theme.slots
+                |> List.drop 1
+                |> List.map (timeCell theme)
+    in
+    column [ width <| px theme.timeCell.widthPx, height fill, inFront <| stickyHeader theme titleElems ] <|
         stickyHeader theme titleElems
-            :: [ subcolumnsEl ]
+            :: slotRows
 
 
 anyCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg

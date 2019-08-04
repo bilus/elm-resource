@@ -15,7 +15,7 @@ import Iso8601
 import List.Extra
 import Maybe.Extra
 import Schedule exposing (Reservation(..), ReservationId(..), Resource, ResourceId(..), Schedule, mapReservations, newResource, newSchedule)
-import Sheet exposing (Cell(..), CellRef, Column(..), ColumnRef, Draggable(..), Droppable(..), Sheet, SubColumn)
+import Sheet exposing (Cell(..), CellRef, Column, ColumnRef, Draggable(..), Droppable(..), Sheet, SubColumn)
 import Theme exposing (Theme)
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow, make)
@@ -115,7 +115,7 @@ init _ =
     ( { currPage = InputPage
 
       -- , sheet = Sheet.make 48 window sampleSchedule
-      , sheet = Sheet.make slotCount window sampleSchedule
+      , sheet = Sheet.make window sampleSchedule
       , theme = Theme.defaultTheme slotCount window
       }
     , Cmd.none

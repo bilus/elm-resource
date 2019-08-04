@@ -1,4 +1,4 @@
-module DragDrop exposing (Pos, State, draggable, dragged, droppable, getDragItem, init, isDragging, isIdle, mapDragged, started, starting, stopped)
+module DragDrop exposing (Config, Pos, State, draggable, dragged, droppable, getDragItem, init, isDragging, isIdle, mapDragged, started, starting, stopped)
 
 import Element exposing (Attribute)
 import Element.Events as Events

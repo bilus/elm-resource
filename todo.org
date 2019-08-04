@@ -31,7 +31,8 @@
   CLOSED: [2019-07-31 Wed 17:20]
 * DONE Resource colors.
   CLOSED: [2019-08-01 Thu 08:08]
-* TODO Need to visualize cells that are partially outside window (e.g. their end isn't visible)
+* DONE Need to visualize cells that are partially outside window (e.g. their end isn't visible)
+  CLOSED: [2019-08-04 Sun 18:18]
 ** DONE Show from - to on cell
    CLOSED: [2019-08-01 Thu 08:42]
 ** DONE If from or to outside the current window, format using the higher scale
@@ -40,7 +41,9 @@
    CLOSED: [2019-08-01 Thu 09:24]
 ** DONE If <= cell height
    CLOSED: [2019-08-01 Thu 09:24]
-** TODO Do not allow resizing
+** DONE Do not allow resizing
+   CLOSED: [2019-08-04 Sun 18:18]
+* Refactor away TimeColumn and ResourceColumn
 * Day resolution Add <> for changing date + "today" button and + - buttons (15 minutes - 30 minutes - 1 hour)
 * Overview resoultions <> for changing
 * TODO No way to resize cells if they get too short :BUG:
