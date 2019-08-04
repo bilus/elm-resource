@@ -1,6 +1,6 @@
 module Schedule exposing (Reservation(..), ReservationId(..), Resource, ResourceId(..), Schedule, getReservationId, getReservations, getResource, getResourceName, getResourcePaletteIndex, getWindow, isConflict, isReservationOverlapping, mapReservations, moveReservationEnd, moveReservationStart, newReservation, newResource, newSchedule, sortReservations)
 
-import Duration as Duration exposing (Duration)
+import Duration exposing (Duration)
 import List.Extra
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow, make)

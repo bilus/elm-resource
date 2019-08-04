@@ -1,4 +1,4 @@
-module Sheet exposing (Cell(..), CellRef, CellState, Column(..), ColumnRef, Draggable(..), Droppable(..), Msg(..), Sheet, SubColumn, cellWindow, getTimeSlots, make, makeCellRef, makeColumnRef, subscribe, update)
+module Sheet exposing (Cell(..), CellRef, Column(..), ColumnRef, Draggable(..), Droppable(..), Msg(..), Sheet, SubColumn, cellWindow, getTimeSlots, make, makeCellRef, makeColumnRef, subscribe, update)
 
 import Browser.Events
 import DragDrop
@@ -34,14 +34,6 @@ type Column
 
 type alias SubColumn =
     List Cell
-
-
-selected =
-    Lens .selected <| \x m -> { m | selected = x }
-
-
-type alias CellState =
-    { selected : Bool }
 
 
 type Cell
@@ -109,11 +101,6 @@ make slotCount window schedules =
 recalc : Sheet -> Sheet
 recalc sheet =
     let
-        resourceColumns =
-            sheet
-                |> getSchedules
-                |> List.map (makeResourceColumn sheet.window)
-
         newColumns =
             makeColumns sheet.slotCount sheet.window (getSchedules sheet)
 
@@ -328,10 +315,6 @@ update msg sheet =
             ( { sheet | dragDropState = sheet.dragDropState |> DragDrop.stopped |> Debug.log "onDragDropStopped" }, Cmd.none )
 
         ( _, Noop ) ->
-            let
-                _ =
-                    Debug.log "Noop" "Noop"
-            in
             ( sheet, Cmd.none )
 
         ( _, _ ) ->

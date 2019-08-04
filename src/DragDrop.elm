@@ -2,8 +2,6 @@ module DragDrop exposing (Pos, State, draggable, dragged, droppable, getDragItem
 
 import Element exposing (Attribute)
 import Element.Events as Events
-import Html.Attributes exposing (property)
-import Json.Encode
 
 
 
@@ -34,7 +32,9 @@ type
 
 
 type alias Pos =
-    { x : Int, y : Int }
+    { x : Int
+    , y : Int
+    }
 
 
 init : State draggable droppable
@@ -43,7 +43,7 @@ init =
 
 
 starting : draggable -> Pos -> State draggable droppable -> State draggable droppable
-starting draggedItem startPos state =
+starting draggedItem startPos _ =
     Starting { draggedItem = draggedItem, startPos = startPos }
 
 
@@ -53,7 +53,7 @@ started state =
         Idle ->
             Idle
 
-        Starting { draggedItem, startPos } ->
+        Starting { draggedItem } ->
             Started { draggedItem = draggedItem, dropTarget = Nothing }
 
         Started s ->
@@ -66,7 +66,7 @@ dragged dropTarget state =
         Idle ->
             Idle
 
-        Starting { draggedItem, startPos } ->
+        Starting { draggedItem } ->
             Started { draggedItem = draggedItem, dropTarget = dropTarget }
 
         Started s ->
@@ -74,7 +74,7 @@ dragged dropTarget state =
 
 
 stopped : State draggable droppable -> State draggable droppable
-stopped state =
+stopped _ =
     init
 
 
@@ -154,8 +154,8 @@ droppable state config dropTarget =
         Idle ->
             []
 
-        Starting { draggedItem } ->
+        Starting _ ->
             droppableAttrs
 
-        Started { draggedItem } ->
+        Started _ ->
             droppableAttrs

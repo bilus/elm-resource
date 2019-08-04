@@ -175,24 +175,6 @@ viewSheet sheet theme =
     sheet |> Theme.sheetFrame theme
 
 
-formatTime : Posix -> String
-formatTime t =
-    let
-        zone =
-            Time.utc
-
-        -- TODO: Make zone configurable or use CEST
-        hours =
-            String.fromInt (Time.toHour zone t)
-                |> String.padLeft 2 '0'
-
-        minutes =
-            String.fromInt (Time.toMinute zone t)
-                |> String.padLeft 2 '0'
-    in
-    hours ++ ":" ++ minutes
-
-
 main : Program Flags Model Msg
 main =
     Browser.document
