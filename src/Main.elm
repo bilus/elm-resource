@@ -15,7 +15,7 @@ import Iso8601
 import List.Extra
 import Maybe.Extra
 import Schedule exposing (Reservation(..), ReservationId(..), Resource, ResourceId(..), Schedule, mapReservations, newResource, newSchedule)
-import Sheet exposing (Cell(..), CellRef, CellState, Column(..), ColumnRef, Draggable(..), Droppable(..), Sheet, SubColumn)
+import Sheet exposing (Cell(..), CellRef, Column(..), ColumnRef, Draggable(..), Droppable(..), Sheet, SubColumn)
 import Theme exposing (Theme)
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow, make)
@@ -80,23 +80,24 @@ stressTestSchedule =
 sampleSchedule =
     [ newSchedule
         (newResource (ResourceId "id1") "ZS 672AE" 0)
-        [ Schedule.newReservation (ReservationId "r1") (Time.millisToPosix (1000 * 60 * 30)) (hours 4) ]
+        [ Schedule.newReservation (ReservationId "r1.1") (Time.millisToPosix (1000 * 60 * 30)) (hours 4) ]
     , newSchedule
         (newResource (ResourceId "id1") "ZS 8127S" 1)
-        [ Schedule.newReservation (ReservationId "r2") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
-        , Schedule.newReservation (ReservationId "r3") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
+        [ Schedule.newReservation (ReservationId "r2.1") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
+        , Schedule.newReservation (ReservationId "r2.2") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
+        , Schedule.newReservation (ReservationId "r2.3") (Time.millisToPosix (23 * 1000 * 60 * 60 + 30 * 60 * 1000)) (hours 4)
         ]
     , newSchedule
         (newResource (ResourceId "id1") "ZS 1234" 2)
-        [ Schedule.newReservation (ReservationId "r4") (Time.millisToPosix 0) (minutes 35)
+        [ Schedule.newReservation (ReservationId "r3.1") (Time.millisToPosix 0) (minutes 65)
         ]
     , newSchedule
         (newResource (ResourceId "id1") "ZS AAAAA" 3)
-        [ Schedule.newReservation (ReservationId "r5") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
-        , Schedule.newReservation (ReservationId "r6") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
-        , Schedule.newReservation (ReservationId "r7") (Time.millisToPosix (1000 * 60 * 360)) (hours 2)
-        , Schedule.newReservation (ReservationId "r8") (Time.millisToPosix (1000 * 60 * 360)) (minutes 2)
-        , Schedule.newReservation (ReservationId "r9") (Time.millisToPosix (1000 * 60 * 480)) (minutes 45)
+        [ Schedule.newReservation (ReservationId "r4.1") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
+        , Schedule.newReservation (ReservationId "r4.2") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
+        , Schedule.newReservation (ReservationId "r4.3") (Time.millisToPosix (1000 * 60 * 360)) (hours 2)
+        , Schedule.newReservation (ReservationId "r4.4") (Time.millisToPosix (1000 * 60 * 360)) (minutes 2)
+        , Schedule.newReservation (ReservationId "r4.5") (Time.millisToPosix (1000 * 60 * 480)) (minutes 45)
         ]
     ]
 
@@ -106,7 +107,7 @@ init _ =
     let
         window =
             -- TimeWindow.make (Time.millisToPosix (30 * 60 * 1000)) (Duration.hours 2)
-            TimeWindow.make (Time.millisToPosix (30 * 60 * 1000)) (Duration.hours 24)
+            TimeWindow.make (Time.millisToPosix (60 * 60 * 1000)) (Duration.hours 24)
 
         slotCount =
             48
