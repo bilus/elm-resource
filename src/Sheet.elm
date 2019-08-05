@@ -291,14 +291,14 @@ update msg sheet =
 
         ( True, DragDropStarting draggable ) ->
             ( { sheet
-                | dragDropState = sheet.dragDropState |> DragDrop.starting draggable { x = 0, y = 0 } |> Debug.log "onDragDropStarted"
+                | dragDropState = sheet.dragDropState |> DragDrop.starting draggable { x = 0, y = 0 }
               }
             , Cmd.none
             )
 
         ( False, DragDropStarted ) ->
             ( { sheet
-                | dragDropState = sheet.dragDropState |> DragDrop.started |> Debug.log "onDragDropStarted"
+                | dragDropState = sheet.dragDropState |> DragDrop.started
               }
             , Cmd.none
             )
@@ -310,7 +310,7 @@ update msg sheet =
             ( sheet |> onDragDropCompleted droppable, Cmd.none )
 
         ( False, DragDropStopped ) ->
-            ( { sheet | dragDropState = sheet.dragDropState |> DragDrop.stopped |> Debug.log "onDragDropStopped" }, Cmd.none )
+            ( { sheet | dragDropState = sheet.dragDropState |> DragDrop.stopped }, Cmd.none )
 
         ( _, Noop ) ->
             ( sheet, Cmd.none )
@@ -320,11 +320,8 @@ update msg sheet =
 
 
 onCellClicked : Cell -> CellRef -> Sheet -> Sheet
-onCellClicked cell cellRef sheet =
+onCellClicked _ cellRef sheet =
     let
-        _ =
-            Debug.log "onCellClicked" sheet.dragDropState
-
         newSelection =
             if sheet.selectedCell == Just cellRef then
                 Nothing
@@ -332,7 +329,7 @@ onCellClicked cell cellRef sheet =
             else
                 Just cellRef
     in
-    { sheet | selectedCell = newSelection |> Debug.log "onCellClicked" }
+    { sheet | selectedCell = newSelection }
 
 
 onDragDropTargetChanged : Maybe Droppable -> Sheet -> Sheet
@@ -372,26 +369,13 @@ onDragDropTargetChanged droppable sheet =
                     sheet
     in
     { updatedSheet
-        | dragDropState = sheet.dragDropState |> DragDrop.dragged droppable |> Debug.log "onDragDropTargetChanged"
+        | dragDropState = sheet.dragDropState |> DragDrop.dragged droppable
     }
 
 
 onDragDropCompleted : Droppable -> Sheet -> Sheet
-onDragDropCompleted droppable sheet =
-    { sheet | dragDropState = sheet.dragDropState |> DragDrop.stopped |> Debug.log "onDragDropCompleted" }
-
-
-offsetBy d t =
-    let
-        ms =
-            Duration.inMilliseconds d
-    in
-    t
-        |> Time.posixToMillis
-        |> toFloat
-        |> (+) ms
-        |> round
-        |> Time.millisToPosix
+onDragDropCompleted _ sheet =
+    { sheet | dragDropState = sheet.dragDropState |> DragDrop.stopped }
 
 
 updateCell : CellRef -> (Cell -> Cell) -> Sheet -> Sheet
