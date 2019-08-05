@@ -395,8 +395,8 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
             el
                 [ Font.color (rgba 0.1 0.1 0.1 0.6) ]
             <|
-                text <|
-                    formatCellLabel theme sheet window
+                paragraph [] <|
+                    [ text <| formatCellLabel theme sheet window ]
 
         window =
             Sheet.cellWindow cell

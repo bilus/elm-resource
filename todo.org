@@ -43,11 +43,13 @@
    CLOSED: [2019-08-01 Thu 09:24]
 ** DONE Do not allow resizing
    CLOSED: [2019-08-04 Sun 18:18]
-* Refactor away TimeColumn and ResourceColumn
+* DONE Refactor away TimeColumn and ResourceColumn
+  CLOSED: [2019-08-05 Mon 11:27]
 * Day resolution Add <> for changing date + "today" button and + - buttons (15 minutes - 30 minutes - 1 hour)
 * Overview resoultions <> for changing
 * TODO No way to resize cells if they get too short :BUG:
-* TODO Right-most column's cells spill outside :BUG:
+* DONE Right-most column's cells spill outside                          :BUG:
+  CLOSED: [2019-08-05 Mon 12:33]
 
 * TODO Scaling half-hour hour day week month
 ** TODO Add scaling buttons at the top (
