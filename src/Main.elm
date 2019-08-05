@@ -108,15 +108,12 @@ init _ =
         window =
             -- TimeWindow.make (Time.millisToPosix (30 * 60 * 1000)) (Duration.hours 2)
             TimeWindow.make (Time.millisToPosix (60 * 60 * 1000)) (Duration.hours 24)
-
-        slotCount =
-            48
     in
     ( { currPage = InputPage
 
       -- , sheet = Sheet.make 48 window sampleSchedule
       , sheet = Sheet.make window sampleSchedule
-      , theme = Theme.defaultTheme slotCount window
+      , theme = Theme.defaultTheme (Duration.minutes 30) window
       }
     , Cmd.none
     )

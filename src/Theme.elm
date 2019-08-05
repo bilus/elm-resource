@@ -3,7 +3,7 @@ module Theme exposing (Theme, defaultTheme, emptyCell, reservedCell, resourceCol
 import Array exposing (Array)
 import Color
 import DragDrop
-import Duration
+import Duration exposing (Duration)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -78,8 +78,8 @@ dragDropConfig =
     }
 
 
-defaultTheme : Int -> TimeWindow -> Theme
-defaultTheme slotCount window =
+defaultTheme : Duration -> TimeWindow -> Theme
+defaultTheme slotDuration window =
     let
         columns =
             [ Color.darkOrange
@@ -114,11 +114,16 @@ defaultTheme slotCount window =
                 |> TimeWindow.getDuration
                 |> Duration.inSeconds
 
-        cellDuration =
-            windowDuration / toFloat slotCount
+        slotDurationInSec =
+            slotDuration |> Duration.inSeconds
+
+        slotCount =
+            windowDuration
+                / slotDurationInSec
+                |> floor
 
         pixelsPerSecond =
-            toFloat defaultCellHeight / cellDuration
+            toFloat defaultCellHeight / slotDurationInSec
     in
     { slots = TimeWindow.split slotCount window
     , defaultCell =
