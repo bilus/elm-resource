@@ -31,6 +31,8 @@ type Msg
     | ViewDay
     | ViewWeek
     | ViewMonth
+    | PreviousPeriod
+    | NextPeriod
     | NoOp
 
 
@@ -185,6 +187,30 @@ update msg model =
             , Cmd.none
             )
 
+        PreviousPeriod ->
+            let
+                updatedSheet =
+                    model.sheet |> Sheet.prev
+            in
+            ( { model
+                | sheet = updatedSheet
+                , theme = Theme.defaultTheme (Duration.minutes 30) updatedSheet.window
+              }
+            , Cmd.none
+            )
+
+        NextPeriod ->
+            let
+                updatedSheet =
+                    model.sheet |> Sheet.next
+            in
+            ( { model
+                | sheet = updatedSheet
+                , theme = Theme.defaultTheme (Duration.minutes 30) updatedSheet.window
+              }
+            , Cmd.none
+            )
+
         _ ->
             ( model, Cmd.none )
 
@@ -203,6 +229,8 @@ view model =
                 , Input.button [] { onPress = Just ViewDay, label = text "Day" }
                 , Input.button [] { onPress = Just ViewWeek, label = text "Week" }
                 , Input.button [] { onPress = Just ViewMonth, label = text "Month" }
+                , Input.button [] { onPress = Just PreviousPeriod, label = text "<" }
+                , Input.button [] { onPress = Just NextPeriod, label = text ">" }
                 , viewSheet model.sheet model.theme
                     |> Element.map SheetMsg
                 ]

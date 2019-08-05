@@ -54,11 +54,13 @@
 ** TODO Properly format time column labels
 ** DONE Day/Week/Month range
    CLOSED: [2019-08-05 Mon 14:02]
-** Show time labels properly
+** DONE Show time labels properly
+   CLOSED: [2019-08-05 Mon 15:08]
 ** Add <> for changing date
 ** "today" button
 ** + - buttons (15 minutes - 30 minutes - 1 hour)
 ** When changing to day,week,month, properly set the boundaries (e.g. first day of the current month
+* TODO Show the first slot's label
 * TODO No way to resize cells if they get too short :BUG:
 * TODO Dragging cells to move them
 * TODO Get rid of time cells (calculate them in view -> slot count unnecessary in sheet) OR put them in a separate field

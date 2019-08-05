@@ -1,4 +1,4 @@
-module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, intersection, isEmpty, make, moveEnd, moveStart, overlaps, setDuration, split, substract)
+module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, intersection, isEmpty, make, moveEnd, moveStart, overlaps, setDuration, split, substract, travelBack, travelForward)
 
 import Duration exposing (Duration, seconds)
 import Time exposing (Posix)
@@ -58,6 +58,7 @@ offsetTime t ms =
         |> toFloat
         |> (+) ms
         |> round
+        |> max 0
         |> Time.millisToPosix
 
 
@@ -270,3 +271,21 @@ moveEnd newEnd ((TimeWindow { start, duration }) as window) =
             { start = start
             , duration = newDurationMs |> toFloat |> Duration.milliseconds
             }
+
+
+travelBack : Duration -> TimeWindow -> TimeWindow
+travelBack offset (TimeWindow { start, duration }) =
+    let
+        offsetMs =
+            offset |> Duration.inMilliseconds
+    in
+    TimeWindow { start = offsetTime start -offsetMs, duration = duration }
+
+
+travelForward : Duration -> TimeWindow -> TimeWindow
+travelForward offset (TimeWindow { start, duration }) =
+    let
+        offsetMs =
+            offset |> Duration.inMilliseconds
+    in
+    TimeWindow { start = offsetTime start offsetMs, duration = duration }

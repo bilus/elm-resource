@@ -1,4 +1,4 @@
-module Sheet exposing (Cell(..), CellRef, Column, ColumnRef, Draggable(..), Droppable(..), Layer, Msg(..), Sheet, cellWindow, dayView, make, makeCellRef, makeColumnRef, monthView, subscribe, update, weekView)
+module Sheet exposing (Cell(..), CellRef, Column, ColumnRef, Draggable(..), Droppable(..), Layer, Msg(..), Sheet, cellWindow, dayView, make, makeCellRef, makeColumnRef, monthView, next, prev, subscribe, update, weekView)
 
 import Browser.Events
 import DragDrop
@@ -106,6 +106,18 @@ weekView sheet =
 monthView : Sheet -> Sheet
 monthView sheet =
     { sheet | window = sheet.window |> TimeWindow.setDuration (Duration.hours (24 * 30)) }
+        |> recalc
+
+
+prev : Sheet -> Sheet
+prev sheet =
+    { sheet | window = sheet.window |> TimeWindow.travelBack (TimeWindow.getDuration sheet.window) }
+        |> recalc
+
+
+next : Sheet -> Sheet
+next sheet =
+    { sheet | window = sheet.window |> TimeWindow.travelForward (TimeWindow.getDuration sheet.window) }
         |> recalc
 
 

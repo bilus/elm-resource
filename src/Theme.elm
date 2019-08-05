@@ -228,15 +228,30 @@ sheetFrame theme sheet =
 
 
 sheetBackground : Theme -> Sheet -> Element Sheet.Msg
-sheetBackground theme sheet =
+sheetBackground theme _ =
     let
-        border =
-            [ Border.color <| rgba 0.9 0.9 0.9 1, Border.width 1, Border.dotted ]
+        regularBorder =
+            [ Border.color <| rgba 0.9 0.9 0.9 1, Border.widthEach { edges | bottom = 1 }, Border.dotted ]
+
+        boundaryBorder =
+            [ Border.color <| rgba 1 0.5 0.5 1, Border.widthEach { edges | bottom = 1 }, Border.dotted ]
 
         guides =
-            List.range 1 (List.length theme.slots)
+            theme.slots
+                |> Util.List.window2
+                -- TODO: Duplication
                 |> List.map
-                    (\_ -> row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ border) [])
+                    (\( prev, crnt ) ->
+                        if isBoundary prev crnt then
+                            let
+                                _ =
+                                    ( prev, crnt ) |> Debug.log "boundary!"
+                            in
+                            row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ boundaryBorder) []
+
+                        else
+                            row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ regularBorder) []
+                    )
     in
     column [ width fill, height fill ] <|
         headerRow theme [] []
@@ -359,10 +374,14 @@ headerRow theme attrs elems =
         elems
 
 
-startDay : TimeWindow -> Int
-startDay =
-    -- TODO: Make zone configurable
-    Time.toDay Time.utc << TimeWindow.getStart
+isBoundary : TimeWindow -> TimeWindow -> Bool
+isBoundary w1 w2 =
+    let
+        -- TODO: Make zone configurable
+        day =
+            Time.toDay Time.utc
+    in
+    (w1 |> TimeWindow.getStart |> day) /= (w2 |> TimeWindow.getStart |> day)
 
 
 timeCell : Theme -> ( TimeWindow, TimeWindow ) -> Element Sheet.Msg
@@ -372,14 +391,14 @@ timeCell theme ( prevWindow, window ) =
             cellHeight theme window
 
         label =
-            if startDay prevWindow /= startDay window then
+            if isBoundary prevWindow window then
                 TimeWindow.getStart window |> Util.Time.formatDateTime Time.utc
 
             else
                 TimeWindow.getStart window |> Util.Time.formatTime Time.utc
     in
     row
-        [ width fill, height <| px h, moveDown <| toFloat theme.timeCell.fontSize / 2, paddingEach <| theme.timeCell.padding ]
+        [ width fill, height <| px h, moveDown <| toFloat theme.timeCell.fontSize / 2, paddingEach <| theme.timeCell.padding, Background.color <| rgba 1 1 1 0.8 ]
     <|
         -- TODO: Make zone configurable
         [ el [ alignRight, Font.size theme.timeCell.fontSize, alignBottom ] <|
