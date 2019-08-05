@@ -4,7 +4,39 @@ import Array exposing (Array)
 import Color
 import DragDrop
 import Duration exposing (Duration)
-import Element exposing (..)
+import Element
+    exposing
+        ( Attribute
+        , Color
+        , Element
+        , above
+        , alignBottom
+        , alignRight
+        , behindContent
+        , below
+        , centerX
+        , centerY
+        , column
+        , el
+        , fill
+        , height
+        , htmlAttribute
+        , inFront
+        , moveDown
+        , moveUp
+        , none
+        , padding
+        , paddingEach
+        , paddingXY
+        , paragraph
+        , px
+        , rgb
+        , rgba
+        , row
+        , shrink
+        , text
+        , width
+        )
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
@@ -243,10 +275,6 @@ sheetBackground theme _ =
                 |> List.map
                     (\( prev, crnt ) ->
                         if isBoundary prev crnt then
-                            let
-                                _ =
-                                    ( prev, crnt ) |> Debug.log "boundary!"
-                            in
                             row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ boundaryBorder) []
 
                         else
@@ -407,7 +435,7 @@ timeCell theme ( prevWindow, window ) =
 
 
 emptyCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
-emptyCell theme columnStyle sheet cellRef cell state =
+emptyCell theme _ _ cellRef cell _ =
     let
         attrs =
             [ Events.onClick (Sheet.CellClicked cell cellRef) ]
@@ -425,9 +453,10 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
             cellResizeHandle theme sheet (Sheet.CellEnd cellRef)
 
         attrs =
-            Background.color columnStyle.reservedCell.backgroundColor
-                :: padding 2
-                :: [ Events.onClick (Sheet.CellClicked cell cellRef) ]
+            [ Background.color columnStyle.reservedCell.backgroundColor
+            , padding 2
+            , Events.onClick (Sheet.CellClicked cell cellRef)
+            ]
 
         contents =
             el
@@ -541,7 +570,7 @@ unselectable =
 
 
 cellResizeHandle : Theme -> Sheet -> Sheet.Draggable -> Element Sheet.Msg
-cellResizeHandle theme sheet draggable =
+cellResizeHandle _ sheet draggable =
     let
         handleHeight =
             15

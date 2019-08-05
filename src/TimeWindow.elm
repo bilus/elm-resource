@@ -252,7 +252,7 @@ moveStart newStart ((TimeWindow { start, duration }) as window) =
 
 
 moveEnd : Posix -> TimeWindow -> TimeWindow
-moveEnd newEnd ((TimeWindow { start, duration }) as window) =
+moveEnd newEnd ((TimeWindow { start }) as window) =
     let
         startMs =
             Time.posixToMillis start

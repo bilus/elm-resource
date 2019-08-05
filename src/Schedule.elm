@@ -1,4 +1,25 @@
-module Schedule exposing (Reservation(..), ReservationId(..), Resource, ResourceId(..), Schedule, getReservationId, getReservations, getResource, getResourceName, getResourcePaletteIndex, getWindow, isConflict, isReservationOverlapping, mapReservations, moveReservationEnd, moveReservationStart, newReservation, newResource, newSchedule, sortReservations)
+module Schedule exposing
+    ( Reservation(..)
+    , ReservationId(..)
+    , Resource
+    , ResourceId(..)
+    , Schedule
+    , getReservationId
+    , getReservations
+    , getResource
+    , getResourceName
+    , getResourcePaletteIndex
+    , getWindow
+    , isConflict
+    , isReservationOverlapping
+    , mapReservations
+    , moveReservationEnd
+    , moveReservationStart
+    , newReservation
+    , newResource
+    , newSchedule
+    , sortReservations
+    )
 
 import Duration exposing (Duration)
 import List.Extra

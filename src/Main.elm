@@ -1,24 +1,14 @@
 module Main exposing (main)
 
-import Array exposing (Array)
 import Browser
-import Color
-import DragDrop
-import Duration exposing (Duration, hours, minutes, seconds)
-import Element exposing (..)
-import Element.Background as Background
-import Element.Font as Font exposing (Font)
+import Duration exposing (hours, minutes)
+import Element exposing (Element, column, fill, height, layout, text, width)
 import Element.Input as Input
-import Html exposing (Html)
-import Html.Attributes exposing (style)
-import Iso8601
-import List.Extra
-import Maybe.Extra
-import Schedule exposing (Reservation(..), ReservationId(..), Resource, ResourceId(..), Schedule, mapReservations, newResource, newSchedule)
-import Sheet exposing (Cell(..), CellRef, Column, ColumnRef, Draggable(..), Droppable(..), Sheet)
+import Schedule exposing (Reservation(..), ReservationId(..), ResourceId(..), Schedule, newResource, newSchedule)
+import Sheet exposing (Cell(..), Draggable(..), Droppable(..), Sheet)
 import Theme exposing (Theme)
-import Time exposing (Posix)
-import TimeWindow exposing (TimeWindow, make)
+import Time
+import TimeWindow
 
 
 type Page
@@ -33,7 +23,6 @@ type Msg
     | ViewMonth
     | PreviousPeriod
     | NextPeriod
-    | NoOp
 
 
 type alias Model =
@@ -47,6 +36,7 @@ type alias Flags =
     ()
 
 
+stressTestSchedule : List Schedule
 stressTestSchedule =
     [ newSchedule
         (newResource (ResourceId "id1") "ZS 672AE" 0)
@@ -82,6 +72,7 @@ stressTestSchedule =
            )
 
 
+sampleSchedule : List Schedule
 sampleSchedule =
     [ newSchedule
         (newResource (ResourceId "id1") "ZS 672AE" 0)
@@ -210,9 +201,6 @@ update msg model =
               }
             , Cmd.none
             )
-
-        _ ->
-            ( model, Cmd.none )
 
 
 
