@@ -1,4 +1,4 @@
-module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, intersection, isEmpty, make, moveEnd, moveStart, overlaps, split, substract)
+module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, intersection, isEmpty, make, moveEnd, moveStart, overlaps, setDuration, split, substract)
 
 import Duration exposing (Duration, seconds)
 import Time exposing (Posix)
@@ -44,6 +44,11 @@ getEnd (TimeWindow { start, duration }) =
 getDuration : TimeWindow -> Duration
 getDuration (TimeWindow { duration }) =
     duration
+
+
+setDuration : Duration -> TimeWindow -> TimeWindow
+setDuration newDuration (TimeWindow { start }) =
+    TimeWindow { start = start, duration = newDuration }
 
 
 offsetTime : Posix -> Float -> Posix

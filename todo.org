@@ -45,9 +45,6 @@
    CLOSED: [2019-08-04 Sun 18:18]
 * DONE Refactor away TimeColumn and ResourceColumn
   CLOSED: [2019-08-05 Mon 11:27]
-* Day resolution Add <> for changing date + "today" button and + - buttons (15 minutes - 30 minutes - 1 hour)
-* Overview resoultions <> for changing
-* TODO No way to resize cells if they get too short :BUG:
 * DONE Right-most column's cells spill outside                          :BUG:
   CLOSED: [2019-08-05 Mon 12:33]
 
@@ -55,6 +52,14 @@
 ** TODO Add scaling buttons at the top (
 ** TODO Need a way to see day / month boundaries
 ** TODO Properly format time column labels
+** DONE Day/Week/Month range
+   CLOSED: [2019-08-05 Mon 14:02]
+** Show time labels properly
+** Add <> for changing date
+** "today" button
+** + - buttons (15 minutes - 30 minutes - 1 hour)
+** When changing to day,week,month, properly set the boundaries (e.g. first day of the current month
+* TODO No way to resize cells if they get too short :BUG:
 * TODO Dragging cells to move them
 * TODO Get rid of time cells (calculate them in view -> slot count unnecessary in sheet) OR put them in a separate field
 * TODO Grabbing & dragging doesn't always work (too close to the handle edge) -- mousedown + mousemove :BUG:

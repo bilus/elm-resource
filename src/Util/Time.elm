@@ -17,7 +17,7 @@ formatTime zone t =
 
 formatDateTime : Zone -> Posix -> String
 formatDateTime zone t =
-    format US.config "%A, %B %-@d ⋅ %I:%M" zone t
+    format US.config "%a, %b %-@d ⋅ %I:%M" zone t
         ++ p zone t
 
 

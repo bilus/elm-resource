@@ -15,6 +15,7 @@ import Sheet exposing (Sheet)
 import Time
 import TimeWindow exposing (TimeWindow)
 import Util.Flip exposing (flip)
+import Util.List
 import Util.Time
 
 
@@ -142,7 +143,7 @@ defaultTheme slotDuration window =
         }
     , timeCell =
         { fontSize = 14
-        , widthPx = 100
+        , widthPx = 200
         , padding = { edges | right = 5 }
         }
     , defaultColumnStyle =
@@ -321,7 +322,7 @@ timeColumn theme =
 
         slotRows =
             theme.slots
-                |> List.drop 1
+                |> Util.List.window2
                 |> List.map (timeCell theme)
     in
     column [ width <| px theme.timeCell.widthPx, height fill, inFront <| stickyHeader theme titleElems ] <|
@@ -358,18 +359,31 @@ headerRow theme attrs elems =
         elems
 
 
-timeCell : Theme -> TimeWindow -> Element Sheet.Msg
-timeCell theme window =
+startDay : TimeWindow -> Int
+startDay =
+    -- TODO: Make zone configurable
+    Time.toDay Time.utc << TimeWindow.getStart
+
+
+timeCell : Theme -> ( TimeWindow, TimeWindow ) -> Element Sheet.Msg
+timeCell theme ( prevWindow, window ) =
     let
         h =
             cellHeight theme window
+
+        label =
+            if startDay prevWindow /= startDay window then
+                TimeWindow.getStart window |> Util.Time.formatDateTime Time.utc
+
+            else
+                TimeWindow.getStart window |> Util.Time.formatTime Time.utc
     in
     row
         [ width fill, height <| px h, moveDown <| toFloat theme.timeCell.fontSize / 2, paddingEach <| theme.timeCell.padding ]
     <|
         -- TODO: Make zone configurable
         [ el [ alignRight, Font.size theme.timeCell.fontSize, alignBottom ] <|
-            (TimeWindow.getStart window |> Util.Time.formatTime Time.utc |> text)
+            text label
         ]
 
 

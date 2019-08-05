@@ -28,6 +28,9 @@ type Page
 type Msg
     = SheetMsg Sheet.Msg
     | Reset
+    | ViewDay
+    | ViewWeek
+    | ViewMonth
     | NoOp
 
 
@@ -146,7 +149,43 @@ update msg model =
         Reset ->
             init ()
 
-        NoOp ->
+        ViewDay ->
+            let
+                updatedSheet =
+                    model.sheet |> Sheet.dayView
+            in
+            ( { model
+                | sheet = updatedSheet
+                , theme = Theme.defaultTheme (Duration.minutes 30) updatedSheet.window
+              }
+            , Cmd.none
+            )
+
+        ViewWeek ->
+            let
+                updatedSheet =
+                    model.sheet |> Sheet.weekView
+            in
+            ( { model
+                | sheet = updatedSheet
+                , theme = Theme.defaultTheme (Duration.minutes 30) updatedSheet.window
+              }
+            , Cmd.none
+            )
+
+        ViewMonth ->
+            let
+                updatedSheet =
+                    model.sheet |> Sheet.monthView
+            in
+            ( { model
+                | sheet = updatedSheet
+                , theme = Theme.defaultTheme (Duration.minutes 30) updatedSheet.window
+              }
+            , Cmd.none
+            )
+
+        _ ->
             ( model, Cmd.none )
 
 
@@ -161,6 +200,9 @@ view model =
         [ layout [] <|
             column [ width fill, height fill ]
                 [ Input.button [] { onPress = Just Reset, label = text "Reset" }
+                , Input.button [] { onPress = Just ViewDay, label = text "Day" }
+                , Input.button [] { onPress = Just ViewWeek, label = text "Week" }
+                , Input.button [] { onPress = Just ViewMonth, label = text "Month" }
                 , viewSheet model.sheet model.theme
                     |> Element.map SheetMsg
                 ]
