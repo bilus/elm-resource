@@ -4,6 +4,7 @@ import Browser
 import Duration exposing (hours, minutes)
 import Element exposing (Element, column, fill, height, layout, px, row, spacing, text, width)
 import Element.Input as Input
+import Process
 import Schedule exposing (Reservation(..), ReservationId(..), ResourceId(..), Schedule, newResource, newSchedule)
 import Sheet exposing (Cell(..), Draggable(..), Droppable(..), Sheet)
 import Task exposing (andThen, perform)
@@ -212,7 +213,15 @@ update msg model =
             )
 
         NewTime time ->
-            ( { model | currentTime = time }, Cmd.none )
+            ( { model
+                | currentTime = time
+                , sheet = model.sheet |> Sheet.setNowMarker (Just time)
+              }
+            , Process.sleep (60.0 * 1000.0)
+                -- Update current time indicator every minute
+                |> Task.andThen (\_ -> Time.now)
+                |> Task.perform NewTime
+            )
 
 
 
@@ -246,7 +255,9 @@ view model =
 setSheetWindow : TimeWindow -> Model -> Model
 setSheetWindow newWindow model =
     { model
-        | sheet = Sheet.make newWindow sampleSchedule
+        | sheet =
+            Sheet.make newWindow sampleSchedule
+                |> Sheet.setNowMarker (Just model.currentTime)
         , theme = Theme.defaultTheme (Duration.minutes 30) newWindow
     }
 

@@ -1,4 +1,4 @@
-module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, goBack, goForward, goToDay, intersection, isEmpty, make, moveEnd, moveStart, overlaps, setDuration, split, substract, toDay, toMonth, toWeek)
+module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, goBack, goForward, goToDay, includes, intersection, isEmpty, make, moveEnd, moveStart, overlaps, setDuration, split, substract, toDay, toMonth, toWeek)
 
 import Duration exposing (Duration, seconds)
 import Time exposing (Posix, Zone)
@@ -89,6 +89,18 @@ contains w1 w2 =
             toMillis w2
     in
     m2.start >= m1.start && m2.end <= m1.end
+
+
+includes : Posix -> TimeWindow -> Bool
+includes t w =
+    let
+        m =
+            toMillis w
+
+        ms =
+            t |> Time.posixToMillis
+    in
+    ms >= m.start && ms < m.end
 
 
 intersection : TimeWindow -> TimeWindow -> Maybe TimeWindow

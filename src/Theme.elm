@@ -45,6 +45,7 @@ import Html.Attributes exposing (style)
 import Schedule
 import Sheet exposing (Sheet)
 import Time
+import Time.Extra exposing (Interval(..))
 import TimeWindow exposing (TimeWindow)
 import Util.Flip exposing (flip)
 import Util.List
@@ -260,7 +261,43 @@ sheetFrame theme sheet =
 
 
 sheetBackground : Theme -> Sheet -> Element Sheet.Msg
-sheetBackground theme _ =
+sheetBackground theme sheet =
+    let
+        guides =
+            theme.slots
+                |> Util.List.window2
+                -- TODO: Duplication
+                |> List.map
+                    (\( prev, crnt ) ->
+                        let
+                            nowMarker =
+                                sheet.nowMarker
+                                    |> Maybe.andThen
+                                        (\now ->
+                                            if TimeWindow.includes now crnt then
+                                                let
+                                                    offset =
+                                                        Time.Extra.diff Millisecond Time.utc (TimeWindow.getStart prev) now |> toFloat
+
+                                                    pixels =
+                                                        offset / 1000.0 * theme.defaultCell.pixelsPerSecond |> round |> Debug.log "pixels"
+                                                in
+                                                Just pixels
+
+                                            else
+                                                Nothing
+                                        )
+                        in
+                        guide theme (isBoundary prev crnt) nowMarker
+                    )
+    in
+    column [ width fill, height fill ] <|
+        headerRow theme [] []
+            :: guides
+
+
+guide : Theme -> Bool -> Maybe Int -> Element Sheet.Msg
+guide theme boundary nowMarker =
     let
         regularBorder =
             [ Border.color <| rgba 0.9 0.9 0.9 1, Border.widthEach { edges | bottom = 1 }, Border.dotted ]
@@ -268,22 +305,32 @@ sheetBackground theme _ =
         boundaryBorder =
             [ Border.color <| rgba 1 0.5 0.5 1, Border.widthEach { edges | bottom = 1 }, Border.dotted ]
 
-        guides =
-            theme.slots
-                |> Util.List.window2
-                -- TODO: Duplication
-                |> List.map
-                    (\( prev, crnt ) ->
-                        if isBoundary prev crnt then
-                            row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ boundaryBorder) []
+        border =
+            if boundary then
+                boundaryBorder
 
-                        else
-                            row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ regularBorder) []
-                    )
+            else
+                regularBorder
     in
-    column [ width fill, height fill ] <|
-        headerRow theme [] []
-            :: guides
+    row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ border) <|
+        (nowMarker
+            |> Maybe.map (currentTimeIndicator theme)
+            |> Maybe.map List.singleton
+            |> Maybe.withDefault []
+        )
+
+
+currentTimeIndicator : Theme -> Int -> Element Sheet.Msg
+currentTimeIndicator _ offset =
+    row
+        [ width fill
+        , height fill
+        , moveDown <| toFloat offset
+        , Border.widthEach { edges | top = 2 }
+        , Border.solid
+        , Border.color <| rgba 0 0 0 1
+        ]
+        []
 
 
 dragDropGrid : Theme -> Sheet -> Element Sheet.Msg
@@ -426,7 +473,7 @@ timeCell theme ( prevWindow, window ) =
                 TimeWindow.getStart window |> Util.Time.formatTime Time.utc
     in
     row
-        [ width fill, height <| px h, moveDown <| toFloat theme.timeCell.fontSize / 2, paddingEach <| theme.timeCell.padding, Background.color <| rgba 1 1 1 0.8 ]
+        [ width fill, height <| px h, moveDown <| toFloat theme.timeCell.fontSize / 2, paddingEach <| theme.timeCell.padding, Background.color <| rgba 1 1 1 1 ]
     <|
         -- TODO: Make zone configurable
         [ el [ alignRight, Font.size theme.timeCell.fontSize, alignBottom ] <|

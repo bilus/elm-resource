@@ -1,4 +1,4 @@
-module Sheet exposing (Cell(..), CellRef, Column, ColumnRef, Draggable(..), Droppable(..), Layer, Msg(..), Sheet, cellWindow, make, makeCellRef, makeColumnRef, subscribe, update)
+module Sheet exposing (Cell(..), CellRef, Column, ColumnRef, Draggable(..), Droppable(..), Layer, Msg(..), Sheet, cellWindow, make, makeCellRef, makeColumnRef, setNowMarker, subscribe, update)
 
 import Browser.Events
 import DragDrop
@@ -17,6 +17,7 @@ type alias Sheet =
     , columns : List Column
     , dragDropState : DragDrop.State Draggable Droppable
     , selectedCell : Maybe CellRef
+    , nowMarker : Maybe Posix
     }
 
 
@@ -88,7 +89,13 @@ make window schedules =
     , columns = makeColumns window schedules
     , dragDropState = DragDrop.init
     , selectedCell = Nothing
+    , nowMarker = Nothing
     }
+
+
+setNowMarker : Maybe Posix -> Sheet -> Sheet
+setNowMarker marker sheet =
+    { sheet | nowMarker = marker }
 
 
 recalc : Sheet -> Sheet
