@@ -59,6 +59,9 @@
 ** TODO Fix rebuilding sheet after window changes
 *** Sheet = all events even outside range and Theme keeps window?
 *** "Reload" events (using cache to speed up)
+*** What are the options
+**** Store "outside" reservations in a separate data structure
+**** Keep window out of the sheet (in theme)
 ** Add <> for changing date
 ** "today" button
 ** + - buttons (15 minutes - 30 minutes - 1 hour)

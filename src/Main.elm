@@ -8,7 +8,7 @@ import Schedule exposing (Reservation(..), ReservationId(..), ResourceId(..), Sc
 import Sheet exposing (Cell(..), Draggable(..), Droppable(..), Sheet)
 import Theme exposing (Theme)
 import Time
-import TimeWindow
+import TimeWindow exposing (TimeWindow)
 
 
 type Page
@@ -144,61 +144,46 @@ update msg model =
 
         ViewDay ->
             let
-                updatedSheet =
-                    model.sheet |> Sheet.dayView
+                newWindow =
+                    model.sheet.window |> TimeWindow.setDuration (Duration.hours 24)
             in
-            ( { model
-                | sheet = updatedSheet
-                , theme = Theme.defaultTheme (Duration.minutes 30) updatedSheet.window
-              }
+            ( model |> setSheetWindow newWindow
             , Cmd.none
             )
 
         ViewWeek ->
             let
-                updatedSheet =
-                    model.sheet |> Sheet.weekView
+                newWindow =
+                    model.sheet.window |> TimeWindow.setDuration (Duration.hours (24 * 7))
             in
-            ( { model
-                | sheet = updatedSheet
-                , theme = Theme.defaultTheme (Duration.minutes 30) updatedSheet.window
-              }
+            ( model |> setSheetWindow newWindow
             , Cmd.none
             )
 
         ViewMonth ->
             let
-                updatedSheet =
-                    model.sheet |> Sheet.monthView
+                newWindow =
+                    model.sheet.window |> TimeWindow.setDuration (Duration.hours (24 * 7 * 30))
             in
-            ( { model
-                | sheet = updatedSheet
-                , theme = Theme.defaultTheme (Duration.minutes 30) updatedSheet.window
-              }
+            ( model |> setSheetWindow newWindow
             , Cmd.none
             )
 
         PreviousPeriod ->
             let
-                updatedSheet =
-                    model.sheet |> Sheet.prev
+                newWindow =
+                    model.sheet.window |> TimeWindow.travelBack (TimeWindow.getDuration model.sheet.window)
             in
-            ( { model
-                | sheet = updatedSheet
-                , theme = Theme.defaultTheme (Duration.minutes 30) updatedSheet.window
-              }
+            ( model |> setSheetWindow newWindow
             , Cmd.none
             )
 
         NextPeriod ->
             let
-                updatedSheet =
-                    model.sheet |> Sheet.next
+                newWindow =
+                    model.sheet.window |> TimeWindow.travelForward (TimeWindow.getDuration model.sheet.window)
             in
-            ( { model
-                | sheet = updatedSheet
-                , theme = Theme.defaultTheme (Duration.minutes 30) updatedSheet.window
-              }
+            ( model |> setSheetWindow newWindow
             , Cmd.none
             )
 
@@ -223,6 +208,14 @@ view model =
                     |> Element.map SheetMsg
                 ]
         ]
+    }
+
+
+setSheetWindow : TimeWindow -> Model -> Model
+setSheetWindow newWindow model =
+    { model
+        | sheet = Sheet.make newWindow sampleSchedule
+        , theme = Theme.defaultTheme (Duration.minutes 30) newWindow
     }
 
 
