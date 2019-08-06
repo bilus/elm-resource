@@ -7,7 +7,8 @@ import Element.Input as Input
 import Schedule exposing (Reservation(..), ReservationId(..), ResourceId(..), Schedule, newResource, newSchedule)
 import Sheet exposing (Cell(..), Draggable(..), Droppable(..), Sheet)
 import Theme exposing (Theme)
-import Time
+import Time exposing (Month(..), Posix)
+import Time.Extra exposing (Interval(..))
 import TimeWindow exposing (TimeWindow)
 
 
@@ -36,29 +37,35 @@ type alias Flags =
     ()
 
 
+t : Int -> Posix
+t ms =
+    Time.Extra.partsToPosix Time.utc { year = 2019, month = Dec, day = 10, hour = 10, minute = 0, second = 0, millisecond = 0 }
+        |> Time.Extra.add Millisecond ms Time.utc
+
+
 stressTestSchedule : List Schedule
 stressTestSchedule =
     [ newSchedule
         (newResource (ResourceId "id1") "ZS 672AE" 0)
-        [ Schedule.newReservation (ReservationId "r1") (Time.millisToPosix (1000 * 60 * 30)) (hours 4) ]
+        [ Schedule.newReservation (ReservationId "r1") (t (1000 * 60 * 30)) (hours 4) ]
     , newSchedule
         (newResource (ResourceId "id1") "ZS 8127S" 1)
-        [ Schedule.newReservation (ReservationId "r2") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
-        , Schedule.newReservation (ReservationId "r3") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
+        [ Schedule.newReservation (ReservationId "r2") (t (1000 * 60 * 180)) (hours 1)
+        , Schedule.newReservation (ReservationId "r3") (t (1000 * 60 * 60)) (hours 4)
         ]
     , newSchedule
         (newResource (ResourceId "id1") "ZS 1234" 2)
         (List.range
             0
             1000
-            |> List.map (\i -> Schedule.newReservation (ReservationId "r4") (Time.millisToPosix <| i * 5 * 1000 * 60) (minutes <| toFloat <| 5))
+            |> List.map (\i -> Schedule.newReservation (ReservationId "r4") (t <| i * 5 * 1000 * 60) (minutes <| toFloat <| 5))
         )
     , newSchedule
         (newResource (ResourceId "id1") "ZS AAAAA" 3)
-        [ Schedule.newReservation (ReservationId "r5") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
-        , Schedule.newReservation (ReservationId "r6") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
-        , Schedule.newReservation (ReservationId "r7") (Time.millisToPosix (1000 * 60 * 360)) (hours 2)
-        , Schedule.newReservation (ReservationId "r7") (Time.millisToPosix (36 * 60 * 60 * 1000 + 1000 * 60 * 360)) (hours 2)
+        [ Schedule.newReservation (ReservationId "r5") (t (1000 * 60 * 180)) (hours 1)
+        , Schedule.newReservation (ReservationId "r6") (t (1000 * 60 * 60)) (hours 4)
+        , Schedule.newReservation (ReservationId "r7") (t (1000 * 60 * 360)) (hours 2)
+        , Schedule.newReservation (ReservationId "r7") (t (36 * 60 * 60 * 1000 + 1000 * 60 * 360)) (hours 2)
         ]
     ]
         ++ (List.range 0 100
@@ -66,7 +73,7 @@ stressTestSchedule =
                     (\i ->
                         newSchedule
                             (newResource (ResourceId "id1") "ZS AAAAA" (4 + i))
-                            [ Schedule.newReservation (ReservationId <| "rx" ++ String.fromInt i) (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
+                            [ Schedule.newReservation (ReservationId <| "rx" ++ String.fromInt i) (t (1000 * 60 * 180)) (hours 1)
                             ]
                     )
            )
@@ -76,24 +83,24 @@ sampleSchedule : List Schedule
 sampleSchedule =
     [ newSchedule
         (newResource (ResourceId "id1") "ZS 672AE" 0)
-        [ Schedule.newReservation (ReservationId "r1.1") (Time.millisToPosix (1000 * 60 * 30)) (hours 4) ]
+        [ Schedule.newReservation (ReservationId "r1.1") (t (1000 * 60 * 30)) (hours 4) ]
     , newSchedule
         (newResource (ResourceId "id1") "ZS 8127S" 1)
-        [ Schedule.newReservation (ReservationId "r2.1") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
-        , Schedule.newReservation (ReservationId "r2.2") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
-        , Schedule.newReservation (ReservationId "r2.3") (Time.millisToPosix (23 * 1000 * 60 * 60 + 30 * 60 * 1000)) (hours 4)
+        [ Schedule.newReservation (ReservationId "r2.1") (t (1000 * 60 * 180)) (hours 1)
+        , Schedule.newReservation (ReservationId "r2.2") (t (1000 * 60 * 60)) (hours 4)
+        , Schedule.newReservation (ReservationId "r2.3") (t (23 * 1000 * 60 * 60 + 30 * 60 * 1000)) (hours 4)
         ]
     , newSchedule
         (newResource (ResourceId "id1") "ZS 1234" 2)
-        [ Schedule.newReservation (ReservationId "r3.1") (Time.millisToPosix 0) (minutes 65)
+        [ Schedule.newReservation (ReservationId "r3.1") (t 0) (minutes 65)
         ]
     , newSchedule
         (newResource (ResourceId "id1") "ZS AAAAA" 3)
-        [ Schedule.newReservation (ReservationId "r4.1") (Time.millisToPosix (1000 * 60 * 180)) (hours 1)
-        , Schedule.newReservation (ReservationId "r4.2") (Time.millisToPosix (1000 * 60 * 60)) (hours 4)
-        , Schedule.newReservation (ReservationId "r4.3") (Time.millisToPosix (1000 * 60 * 360)) (hours 2)
-        , Schedule.newReservation (ReservationId "r4.4") (Time.millisToPosix (1000 * 60 * 360)) (minutes 2)
-        , Schedule.newReservation (ReservationId "r4.5") (Time.millisToPosix (1000 * 60 * 480)) (minutes 45)
+        [ Schedule.newReservation (ReservationId "r4.1") (t (1000 * 60 * 180)) (hours 1)
+        , Schedule.newReservation (ReservationId "r4.2") (t (1000 * 60 * 60)) (hours 4)
+        , Schedule.newReservation (ReservationId "r4.3") (t (1000 * 60 * 360)) (hours 2)
+        , Schedule.newReservation (ReservationId "r4.4") (t (1000 * 60 * 360)) (minutes 2)
+        , Schedule.newReservation (ReservationId "r4.5") (t (1000 * 60 * 480)) (minutes 45)
         ]
     ]
 
@@ -102,8 +109,8 @@ init : Flags -> ( Model, Cmd Msg )
 init _ =
     let
         window =
-            -- TimeWindow.make (Time.millisToPosix (30 * 60 * 1000)) (Duration.hours 2)
-            TimeWindow.make (Time.millisToPosix (60 * 60 * 1000)) (Duration.hours 24)
+            -- TimeWindow.make (t (30 * 60 * 1000)) (Duration.hours 2)
+            TimeWindow.make (t (60 * 60 * 1000)) (Duration.hours 24) |> TimeWindow.toDay Time.utc
     in
     ( { currPage = InputPage
 
@@ -145,7 +152,7 @@ update msg model =
         ViewDay ->
             let
                 newWindow =
-                    model.sheet.window |> TimeWindow.setDuration (Duration.hours 24)
+                    model.sheet.window |> TimeWindow.toDay Time.utc
             in
             ( model |> setSheetWindow newWindow
             , Cmd.none
@@ -154,7 +161,7 @@ update msg model =
         ViewWeek ->
             let
                 newWindow =
-                    model.sheet.window |> TimeWindow.setDuration (Duration.hours (24 * 7))
+                    model.sheet.window |> TimeWindow.toWeek Time.utc
             in
             ( model |> setSheetWindow newWindow
             , Cmd.none
@@ -163,7 +170,7 @@ update msg model =
         ViewMonth ->
             let
                 newWindow =
-                    model.sheet.window |> TimeWindow.setDuration (Duration.hours (24 * 7 * 30))
+                    model.sheet.window |> TimeWindow.toMonth Time.utc
             in
             ( model |> setSheetWindow newWindow
             , Cmd.none

@@ -1,7 +1,8 @@
-module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, intersection, isEmpty, make, moveEnd, moveStart, overlaps, setDuration, split, substract, travelBack, travelForward)
+module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, intersection, isEmpty, make, moveEnd, moveStart, overlaps, setDuration, split, substract, toDay, toMonth, toWeek, travelBack, travelForward)
 
 import Duration exposing (Duration, seconds)
-import Time exposing (Posix)
+import Time exposing (Posix, Zone)
+import Time.Extra exposing (Interval(..))
 
 
 type TimeWindow
@@ -289,3 +290,27 @@ travelForward offset (TimeWindow { start, duration }) =
             offset |> Duration.inMilliseconds
     in
     TimeWindow { start = offsetTime start offsetMs, duration = duration }
+
+
+toDay : Zone -> TimeWindow -> TimeWindow
+toDay zone (TimeWindow { start }) =
+    TimeWindow { start = start |> Time.Extra.floor Day zone, duration = Duration.hours 24 }
+
+
+toWeek : Zone -> TimeWindow -> TimeWindow
+toWeek zone (TimeWindow { start }) =
+    TimeWindow { start = start |> Time.Extra.floor Week zone, duration = Duration.hours (24 * 7) }
+
+
+toMonth : Zone -> TimeWindow -> TimeWindow
+toMonth zone (TimeWindow { start }) =
+    let
+        end =
+            start |> Time.Extra.ceiling Month zone
+
+        duration =
+            Time.Extra.diff Millisecond zone end start
+                |> toFloat
+                |> Duration.milliseconds
+    in
+    TimeWindow { start = start |> Time.Extra.floor Month zone, duration = duration }
