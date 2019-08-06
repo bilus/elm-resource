@@ -12,6 +12,7 @@ import Element
         , above
         , alignBottom
         , alignRight
+        , alignTop
         , behindContent
         , below
         , centerX
@@ -167,10 +168,10 @@ defaultTheme slotDuration window =
         }
     , columns = columns
     , header =
-        { heightPx = defaultCellHeight
+        { heightPx = 26
         , padding = 3
         , fontFamily = [ Font.typeface "Helvetica" ]
-        , fontSize = 20
+        , fontSize = 14
         , backgroundColor = rgba 0.8 0.8 0.8 0.8
         , textColor = rgb 0 0 0
         }
@@ -260,13 +261,43 @@ sheetFrame theme sheet =
         (timeColumn theme :: cols ++ [ filler ])
 
 
+slotWindows : Theme -> List ( TimeWindow, TimeWindow )
+slotWindows theme =
+    let
+        maybePlaceholder =
+            theme.slots
+                |> List.head
+                |> Maybe.map makeTimeWindowBefore
+    in
+    maybePlaceholder
+        |> Maybe.map
+            (\placeholder -> placeholder :: theme.slots)
+        -- (\placeholder -> theme.slots)
+        |> Maybe.withDefault theme.slots
+        |> Util.List.window2
+
+
+makeTimeWindowBefore : TimeWindow -> TimeWindow
+makeTimeWindowBefore w =
+    let
+        startMs =
+            TimeWindow.getStart w
+                |> Time.posixToMillis
+
+        prevStart =
+            startMs
+                - 1000
+                |> Time.millisToPosix
+    in
+    TimeWindow.make prevStart (Duration.milliseconds 1000)
+
+
 sheetBackground : Theme -> Sheet -> Element Sheet.Msg
 sheetBackground theme sheet =
     let
         guides =
-            theme.slots
-                |> Util.List.window2
-                -- TODO: Duplication
+            theme
+                |> slotWindows
                 |> List.map
                     (\( prev, crnt ) ->
                         let
@@ -277,10 +308,10 @@ sheetBackground theme sheet =
                                             if TimeWindow.includes now crnt then
                                                 let
                                                     offset =
-                                                        Time.Extra.diff Millisecond Time.utc (TimeWindow.getStart prev) now |> toFloat
+                                                        Time.Extra.diff Millisecond Time.utc (TimeWindow.getStart crnt) now |> toFloat
 
                                                     pixels =
-                                                        offset / 1000.0 * theme.defaultCell.pixelsPerSecond |> round |> Debug.log "pixels"
+                                                        offset / 1000.0 * theme.defaultCell.pixelsPerSecond |> round
                                                 in
                                                 Just pixels
 
@@ -292,7 +323,7 @@ sheetBackground theme sheet =
                                 sheet.nowMarker
                                     |> Maybe.map
                                         (\now ->
-                                            isSameDay Time.utc now prev
+                                            isSameDay Time.utc now crnt
                                         )
                                     |> Maybe.withDefault False
                         in
@@ -310,15 +341,12 @@ guide theme boundary currentDay nowMarker =
         regularBorder =
             [ Border.color <| rgba 0.9 0.9 0.9 1, Border.widthEach { edges | bottom = 1 }, Border.dotted ]
 
-        boundaryBorder =
-            [ Border.color <| rgba 1 0.5 0.5 1, Border.widthEach { edges | bottom = 1 }, Border.dotted ]
-
-        border =
+        boundaryMarker =
             if boundary then
-                boundaryBorder
+                row [ width fill, height fill, Border.color <| rgba 1 0.5 0.5 1, Border.widthEach { edges | top = 1 }, Border.dotted ] []
 
             else
-                regularBorder
+                none
 
         background =
             if currentDay then
@@ -327,11 +355,13 @@ guide theme boundary currentDay nowMarker =
             else
                 []
     in
-    row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ border ++ background) <|
-        (nowMarker
-            |> Maybe.map (currentTimeIndicator theme)
-            |> Maybe.map List.singleton
-            |> Maybe.withDefault []
+    row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ regularBorder ++ background) <|
+        (boundaryMarker
+            :: (nowMarker
+                    |> Maybe.map (currentTimeIndicator theme)
+                    |> Maybe.map List.singleton
+                    |> Maybe.withDefault []
+               )
         )
 
 
@@ -419,19 +449,13 @@ resourceColumn theme sheet colRef { resource, layers } =
 timeColumn : Theme -> Element Sheet.Msg
 timeColumn theme =
     let
-        title =
-            ""
-
-        titleElems =
-            [ el [ alignRight, centerY ] <| text title ]
-
         slotRows =
-            theme.slots
-                |> Util.List.window2
+            theme
+                |> slotWindows
                 |> List.map (timeCell theme)
     in
-    column [ width <| px theme.timeCell.widthPx, height fill, inFront <| stickyHeader theme titleElems ] <|
-        stickyHeader theme titleElems
+    column [ width <| px theme.timeCell.widthPx, height fill ] <|
+        headerRow theme [ Background.color <| rgba 1 1 1 1 ] []
             :: slotRows
 
 
@@ -460,7 +484,13 @@ stickyHeader theme elems =
 headerRow : Theme -> List (Attribute Sheet.Msg) -> List (Element Sheet.Msg) -> Element Sheet.Msg
 headerRow theme attrs elems =
     row
-        ([ width fill, padding theme.header.padding, height <| px theme.header.heightPx ] ++ attrs)
+        ([ width fill
+         , padding theme.header.padding
+         , height <| px theme.header.heightPx
+         , Font.size <| theme.header.fontSize
+         ]
+            ++ attrs
+        )
         elems
 
 
@@ -497,10 +527,10 @@ timeCell theme ( prevWindow, window ) =
                 TimeWindow.getStart window |> Util.Time.formatTime Time.utc
     in
     row
-        [ width fill, height <| px h, moveDown <| toFloat theme.timeCell.fontSize / 2, paddingEach <| theme.timeCell.padding, Background.color <| rgba 1 1 1 1 ]
+        [ width fill, height <| px h, moveUp <| toFloat theme.defaultCell.heightPx / 2, paddingEach <| theme.timeCell.padding, Background.color <| rgba 1 1 1 1 ]
     <|
         -- TODO: Make zone configurable
-        [ el [ alignRight, Font.size theme.timeCell.fontSize, alignBottom ] <|
+        [ el [ alignRight, Font.size theme.timeCell.fontSize, centerY ] <|
             text label
         ]
 

@@ -75,7 +75,8 @@
    CLOSED: [2019-08-06 Tue 13:47]
 ** DONE Show current time and highlight current day
    CLOSED: [2019-08-06 Tue 16:42]
-* TODO Show the first slot's label
+* DONE Show the first slot's label
+  CLOSED: [2019-08-06 Tue 17:47]
 * TODO Use user's current time zone
 * TODO Better encapsulate the sheet so it's easier to use in Main
 * TODO + - buttons (15 minutes - 30 minutes - 1 hour)

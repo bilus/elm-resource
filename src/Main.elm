@@ -186,7 +186,7 @@ update msg model =
         NextPeriod ->
             let
                 newWindow =
-                    model.sheet.window |> TimeWindow.goForward (TimeWindow.getDuration model.sheet.window |> Debug.log "next")
+                    model.sheet.window |> TimeWindow.goForward (TimeWindow.getDuration model.sheet.window)
             in
             ( model |> setSheetWindow newWindow
             , Cmd.none
