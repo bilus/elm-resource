@@ -14,10 +14,6 @@ import Time.Extra exposing (Interval(..))
 import TimeWindow exposing (TimeWindow)
 
 
-type Page
-    = InputPage
-
-
 type Msg
     = SheetMsg Sheet.Msg
     | Reset
@@ -31,8 +27,7 @@ type Msg
 
 
 type alias Model =
-    { currPage : Page
-    , sheet : Sheet
+    { sheet : Sheet
     , theme : Theme
     , currentTime : Posix
     }
@@ -116,10 +111,8 @@ init _ =
         window =
             TimeWindow.makeDay Time.utc (t 0)
     in
-    ( { currPage = InputPage
-
-      -- , sheet = Sheet.make 48 window sampleSchedule
-      , sheet = Sheet.make window sampleSchedule
+    ( { -- , sheet = Sheet.make 48 window sampleSchedule
+        sheet = Sheet.make window sampleSchedule
       , theme = Theme.defaultTheme (Duration.minutes 30) window
       , currentTime = Time.millisToPosix 0 -- Cheating a bit.
       }

@@ -48,10 +48,14 @@
 * DONE Right-most column's cells spill outside                          :BUG:
   CLOSED: [2019-08-05 Mon 12:33]
 
-* TODO Scaling half-hour hour day week month
-** TODO Add scaling buttons at the top (
-** TODO Need a way to see day / month boundaries
-** TODO Properly format time column labels
+* DONE Get rid of time cells (calculate them in view -> slot count unnecessary in sheet) OR put them in a separate field
+  CLOSED: [2019-08-06 Tue 16:46]
+* DONE Scaling half-hour hour day week month
+  CLOSED: [2019-08-06 Tue 16:47]
+** DONE Need a way to see day / month boundaries
+   CLOSED: [2019-08-06 Tue 16:47]
+** DONE Properly format time column labels
+   CLOSED: [2019-08-06 Tue 16:47]
 ** DONE Day/Week/Month range
    CLOSED: [2019-08-05 Mon 14:02]
 ** DONE Show time labels properly
@@ -69,13 +73,14 @@
    CLOSED: [2019-08-06 Tue 12:07]
 ** DONE "today" button
    CLOSED: [2019-08-06 Tue 13:47]
-** Show current time and highlight current day
-** + - buttons (15 minutes - 30 minutes - 1 hour)
+** DONE Show current time and highlight current day
+   CLOSED: [2019-08-06 Tue 16:42]
 * TODO Show the first slot's label
 * TODO Use user's current time zone
+* TODO Better encapsulate the sheet so it's easier to use in Main
+* TODO + - buttons (15 minutes - 30 minutes - 1 hour)
 * TODO No way to resize cells if they get too short :BUG:
 * TODO Dragging cells to move them
-* TODO Get rid of time cells (calculate them in view -> slot count unnecessary in sheet) OR put them in a separate field
 * TODO Grabbing & dragging doesn't always work (too close to the handle edge) -- mousedown + mousemove :BUG:
 * TODO Events are spilling through the bottom (stressTestSchedule)      :BUG:
 
