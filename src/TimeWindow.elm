@@ -1,4 +1,4 @@
-module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, intersection, isEmpty, make, moveEnd, moveStart, overlaps, setDuration, split, substract, toDay, toMonth, toWeek, travelBack, travelForward)
+module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, goBack, goForward, goToDay, intersection, isEmpty, make, moveEnd, moveStart, overlaps, setDuration, split, substract, toDay, toMonth, toWeek)
 
 import Duration exposing (Duration, seconds)
 import Time exposing (Posix, Zone)
@@ -274,8 +274,8 @@ moveEnd newEnd ((TimeWindow { start }) as window) =
             }
 
 
-travelBack : Duration -> TimeWindow -> TimeWindow
-travelBack offset (TimeWindow { start, duration }) =
+goBack : Duration -> TimeWindow -> TimeWindow
+goBack offset (TimeWindow { start, duration }) =
     let
         offsetMs =
             offset |> Duration.inMilliseconds
@@ -283,8 +283,8 @@ travelBack offset (TimeWindow { start, duration }) =
     TimeWindow { start = offsetTime start -offsetMs, duration = duration }
 
 
-travelForward : Duration -> TimeWindow -> TimeWindow
-travelForward offset (TimeWindow { start, duration }) =
+goForward : Duration -> TimeWindow -> TimeWindow
+goForward offset (TimeWindow { start, duration }) =
     let
         offsetMs =
             offset |> Duration.inMilliseconds
@@ -292,25 +292,65 @@ travelForward offset (TimeWindow { start, duration }) =
     TimeWindow { start = offsetTime start offsetMs, duration = duration }
 
 
+goToDay : Zone -> Posix -> TimeWindow -> TimeWindow
+goToDay zone t ((TimeWindow { duration }) as w) =
+    let
+        start =
+            t
+                |> Time.Extra.floor Day zone
+
+        interval =
+            guessInterval zone w
+
+        newWindow =
+            TimeWindow { start = start, duration = duration }
+    in
+    interval
+        |> Maybe.map (\i -> newWindow |> toInterval i zone)
+        |> Maybe.withDefault newWindow
+
+
+guessInterval : Zone -> TimeWindow -> Maybe Interval
+guessInterval zone w =
+    let
+        supportedIntervals =
+            [ Day, Week, Month ]
+    in
+    supportedIntervals
+        |> List.filter (\i -> w == (w |> toInterval i zone))
+        |> List.head
+
+
 toDay : Zone -> TimeWindow -> TimeWindow
-toDay zone (TimeWindow { start }) =
-    TimeWindow { start = start |> Time.Extra.floor Day zone, duration = Duration.hours 24 }
+toDay =
+    toInterval Day
 
 
 toWeek : Zone -> TimeWindow -> TimeWindow
-toWeek zone (TimeWindow { start }) =
-    TimeWindow { start = start |> Time.Extra.floor Week zone, duration = Duration.hours (24 * 7) }
+toWeek =
+    toInterval Week
 
 
 toMonth : Zone -> TimeWindow -> TimeWindow
-toMonth zone (TimeWindow { start }) =
-    let
-        end =
-            start |> Time.Extra.ceiling Month zone
+toMonth =
+    toInterval Month
 
-        duration =
-            Time.Extra.diff Millisecond zone end start
+
+toInterval : Interval -> Zone -> TimeWindow -> TimeWindow
+toInterval interval zone (TimeWindow { start }) =
+    let
+        newStart =
+            start
+                |> Time.Extra.floor interval zone
+
+        end =
+            start
+                |> Time.Extra.add Millisecond 1 zone
+                |> Time.Extra.ceiling interval zone
+
+        newDuration =
+            Time.Extra.diff Millisecond zone newStart end
                 |> toFloat
                 |> Duration.milliseconds
     in
-    TimeWindow { start = start |> Time.Extra.floor Month zone, duration = duration }
+    TimeWindow { start = newStart, duration = newDuration }

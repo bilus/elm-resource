@@ -67,7 +67,8 @@
    CLOSED: [2019-08-06 Tue 10:55]
 ** DONE When changing to day,week,month, properly set the boundaries (e.g. first day of the current month
    CLOSED: [2019-08-06 Tue 12:07]
-** "today" button
+** DONE "today" button
+   CLOSED: [2019-08-06 Tue 13:47]
 ** Show current time and highlight current day
 ** + - buttons (15 minutes - 30 minutes - 1 hour)
 * TODO Show the first slot's label

@@ -2,10 +2,11 @@ module Main exposing (main)
 
 import Browser
 import Duration exposing (hours, minutes)
-import Element exposing (Element, column, fill, height, layout, text, width)
+import Element exposing (Element, column, fill, height, layout, px, row, spacing, text, width)
 import Element.Input as Input
 import Schedule exposing (Reservation(..), ReservationId(..), ResourceId(..), Schedule, newResource, newSchedule)
 import Sheet exposing (Cell(..), Draggable(..), Droppable(..), Sheet)
+import Task exposing (andThen, perform)
 import Theme exposing (Theme)
 import Time exposing (Month(..), Posix)
 import Time.Extra exposing (Interval(..))
@@ -24,12 +25,15 @@ type Msg
     | ViewMonth
     | PreviousPeriod
     | NextPeriod
+    | Today
+    | NewTime Posix
 
 
 type alias Model =
     { currPage : Page
     , sheet : Sheet
     , theme : Theme
+    , currentTime : Posix
     }
 
 
@@ -39,7 +43,7 @@ type alias Flags =
 
 t : Int -> Posix
 t ms =
-    Time.Extra.partsToPosix Time.utc { year = 2019, month = Dec, day = 10, hour = 10, minute = 0, second = 0, millisecond = 0 }
+    Time.Extra.partsToPosix Time.utc { year = 2019, month = Aug, day = 6, hour = 10, minute = 0, second = 0, millisecond = 0 }
         |> Time.Extra.add Millisecond ms Time.utc
 
 
@@ -110,15 +114,19 @@ init _ =
     let
         window =
             -- TimeWindow.make (t (30 * 60 * 1000)) (Duration.hours 2)
-            TimeWindow.make (t (60 * 60 * 1000)) (Duration.hours 24) |> TimeWindow.toDay Time.utc
+            TimeWindow.make (t 0) (Duration.hours 24)
+                |> Debug.log "before"
+                |> TimeWindow.toDay Time.utc
+                |> Debug.log "after"
     in
     ( { currPage = InputPage
 
       -- , sheet = Sheet.make 48 window sampleSchedule
       , sheet = Sheet.make window sampleSchedule
       , theme = Theme.defaultTheme (Duration.minutes 30) window
+      , currentTime = Time.millisToPosix 0 -- Cheating a bit.
       }
-    , Cmd.none
+    , perform NewTime Time.now
     )
 
 
@@ -179,7 +187,7 @@ update msg model =
         PreviousPeriod ->
             let
                 newWindow =
-                    model.sheet.window |> TimeWindow.travelBack (TimeWindow.getDuration model.sheet.window)
+                    model.sheet.window |> TimeWindow.goBack (TimeWindow.getDuration model.sheet.window)
             in
             ( model |> setSheetWindow newWindow
             , Cmd.none
@@ -188,11 +196,23 @@ update msg model =
         NextPeriod ->
             let
                 newWindow =
-                    model.sheet.window |> TimeWindow.travelForward (TimeWindow.getDuration model.sheet.window)
+                    model.sheet.window |> TimeWindow.goForward (TimeWindow.getDuration model.sheet.window |> Debug.log "next")
             in
             ( model |> setSheetWindow newWindow
             , Cmd.none
             )
+
+        Today ->
+            let
+                newWindow =
+                    model.sheet.window |> TimeWindow.goToDay Time.utc model.currentTime
+            in
+            ( model |> setSheetWindow newWindow
+            , Cmd.none
+            )
+
+        NewTime time ->
+            ( { model | currentTime = time }, Cmd.none )
 
 
 
@@ -204,15 +224,20 @@ view model =
     { title = "elm-resource"
     , body =
         [ layout [] <|
-            column [ width fill, height fill ]
-                [ Input.button [] { onPress = Just Reset, label = text "Reset" }
-                , Input.button [] { onPress = Just ViewDay, label = text "Day" }
-                , Input.button [] { onPress = Just ViewWeek, label = text "Week" }
-                , Input.button [] { onPress = Just ViewMonth, label = text "Month" }
-                , Input.button [] { onPress = Just PreviousPeriod, label = text "<" }
-                , Input.button [] { onPress = Just NextPeriod, label = text ">" }
-                , viewSheet model.sheet model.theme
-                    |> Element.map SheetMsg
+            column [ width fill, height (px 40) ]
+                [ row [ width fill, height fill, spacing 10 ]
+                    [ Input.button [] { onPress = Just Reset, label = text "Reset" }
+                    , Input.button [] { onPress = Just ViewDay, label = text "Day" }
+                    , Input.button [] { onPress = Just ViewWeek, label = text "Week" }
+                    , Input.button [] { onPress = Just ViewMonth, label = text "Month" }
+                    , Input.button [] { onPress = Just PreviousPeriod, label = text "<" }
+                    , Input.button [] { onPress = Just NextPeriod, label = text ">" }
+                    , Input.button [] { onPress = Just Today, label = text "Today" }
+                    ]
+                , row [ width fill, height fill ]
+                    [ viewSheet model.sheet model.theme
+                        |> Element.map SheetMsg
+                    ]
                 ]
         ]
     }
