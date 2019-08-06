@@ -10,9 +10,7 @@ import Element
         , Color
         , Element
         , above
-        , alignBottom
         , alignRight
-        , alignTop
         , behindContent
         , below
         , centerX

@@ -2,7 +2,10 @@ module Main exposing (main)
 
 import Browser
 import Duration exposing (hours, minutes)
-import Element exposing (Element, column, fill, height, layout, px, row, spacing, text, width)
+import Element exposing (Element, alignRight, column, fill, height, layout, padding, paddingXY, px, rgba, row, shrink, spacing, text, width)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
 import Element.Input as Input
 import Process
 import Schedule exposing (Reservation(..), ReservationId(..), ResourceId(..), Schedule, newResource, newSchedule)
@@ -16,7 +19,6 @@ import TimeWindow exposing (TimeWindow)
 
 type Msg
     = SheetMsg Sheet.Msg
-    | Reset
     | ViewDay
     | ViewWeek
     | ViewMonth
@@ -144,9 +146,6 @@ update msg model =
             in
             ( { model | sheet = updatedSheet }, Cmd.map SheetMsg cmd )
 
-        Reset ->
-            init ()
-
         ViewDay ->
             let
                 newWindow =
@@ -217,20 +216,31 @@ update msg model =
 -- VIEW
 
 
+btn : String -> Msg -> Element Msg
+btn title msg =
+    Input.button
+        [ Background.color <| rgba 0.6 0.6 1 0.7
+        , Font.size 15
+        , Border.color <| rgba 0.4 0.4 0.8 0.7
+        , Border.width 1
+        , paddingXY 8 5
+        ]
+        { onPress = Just msg, label = text title }
+
+
 view : Model -> Browser.Document Msg
 view model =
     { title = "elm-resource"
     , body =
         [ layout [] <|
             column [ width fill, height (px 40) ]
-                [ row [ width fill, height fill, spacing 10 ]
-                    [ Input.button [] { onPress = Just Reset, label = text "Reset" }
-                    , Input.button [] { onPress = Just ViewDay, label = text "Day" }
-                    , Input.button [] { onPress = Just ViewWeek, label = text "Week" }
-                    , Input.button [] { onPress = Just ViewMonth, label = text "Month" }
-                    , Input.button [] { onPress = Just PreviousPeriod, label = text "<" }
-                    , Input.button [] { onPress = Just NextPeriod, label = text ">" }
-                    , Input.button [] { onPress = Just Today, label = text "Today" }
+                [ row [ width shrink, height fill, spacing 10, alignRight, padding 5 ]
+                    [ btn "Day" ViewDay
+                    , btn "Week" ViewWeek
+                    , btn "Month" ViewMonth
+                    , btn "◅" PreviousPeriod
+                    , btn "▻" NextPeriod
+                    , btn "Today" Today
                     ]
                 , row [ width fill, height fill ]
                     [ viewSheet model.sheet model.theme
