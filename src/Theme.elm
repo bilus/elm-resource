@@ -44,7 +44,7 @@ import Element.Font as Font exposing (Font)
 import Html.Attributes exposing (style)
 import Schedule
 import Sheet exposing (Sheet)
-import Time
+import Time exposing (Posix, Zone)
 import Time.Extra exposing (Interval(..))
 import TimeWindow exposing (TimeWindow)
 import Util.Flip exposing (flip)
@@ -287,8 +287,16 @@ sheetBackground theme sheet =
                                             else
                                                 Nothing
                                         )
+
+                            isCurrentDay =
+                                sheet.nowMarker
+                                    |> Maybe.map
+                                        (\now ->
+                                            isSameDay Time.utc now prev
+                                        )
+                                    |> Maybe.withDefault False
                         in
-                        guide theme (isBoundary prev crnt) nowMarker
+                        guide theme (isDayBoundary prev crnt) isCurrentDay nowMarker
                     )
     in
     column [ width fill, height fill ] <|
@@ -296,8 +304,8 @@ sheetBackground theme sheet =
             :: guides
 
 
-guide : Theme -> Bool -> Maybe Int -> Element Sheet.Msg
-guide theme boundary nowMarker =
+guide : Theme -> Bool -> Bool -> Maybe Int -> Element Sheet.Msg
+guide theme boundary currentDay nowMarker =
     let
         regularBorder =
             [ Border.color <| rgba 0.9 0.9 0.9 1, Border.widthEach { edges | bottom = 1 }, Border.dotted ]
@@ -311,8 +319,15 @@ guide theme boundary nowMarker =
 
             else
                 regularBorder
+
+        background =
+            if currentDay then
+                [ Background.color <| rgba 0.7 0.8 0.6 0.1 ]
+
+            else
+                []
     in
-    row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ border) <|
+    row ([ width fill, height <| px theme.defaultCell.heightPx ] ++ border ++ background) <|
         (nowMarker
             |> Maybe.map (currentTimeIndicator theme)
             |> Maybe.map List.singleton
@@ -337,7 +352,7 @@ dragDropGrid : Theme -> Sheet -> Element Sheet.Msg
 dragDropGrid theme sheet =
     let
         border =
-            [ Border.color <| rgba 0.7 0.9 0.9 1, Border.width 1, Border.dotted ]
+            [ Border.color <| rgba 0.7 0.9 0.9 0.3, Border.width 1, Border.dotted ]
 
         guides =
             theme.slots
@@ -449,8 +464,17 @@ headerRow theme attrs elems =
         elems
 
 
-isBoundary : TimeWindow -> TimeWindow -> Bool
-isBoundary w1 w2 =
+isSameDay : Zone -> Posix -> TimeWindow -> Bool
+isSameDay zone time w =
+    let
+        wholeDay =
+            TimeWindow.makeDay zone time
+    in
+    TimeWindow.contains wholeDay w
+
+
+isDayBoundary : TimeWindow -> TimeWindow -> Bool
+isDayBoundary w1 w2 =
     let
         -- TODO: Make zone configurable
         day =
@@ -466,7 +490,7 @@ timeCell theme ( prevWindow, window ) =
             cellHeight theme window
 
         label =
-            if isBoundary prevWindow window then
+            if isDayBoundary prevWindow window then
                 TimeWindow.getStart window |> Util.Time.formatDateTime Time.utc
 
             else
@@ -507,7 +531,7 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
 
         contents =
             el
-                [ Font.color (rgba 0.1 0.1 0.1 0.6) ]
+                [ Font.color (rgba 0.1 0.1 0.1 0.6), padding 2 ]
             <|
                 paragraph [] <|
                     [ text <| formatCellLabel theme sheet window ]

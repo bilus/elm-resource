@@ -1,4 +1,4 @@
-module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, goBack, goForward, goToDay, includes, intersection, isEmpty, make, moveEnd, moveStart, overlaps, setDuration, split, substract, toDay, toMonth, toWeek)
+module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, goBack, goForward, goToDay, includes, intersection, isEmpty, make, makeDay, moveEnd, moveStart, overlaps, setDuration, split, substract, toDay, toMonth, toWeek)
 
 import Duration exposing (Duration, seconds)
 import Time exposing (Posix, Zone)
@@ -15,6 +15,12 @@ type TimeWindow
 make : Posix -> Duration -> TimeWindow
 make start duration =
     TimeWindow { start = start, duration = duration }
+
+
+makeDay : Zone -> Posix -> TimeWindow
+makeDay zone time =
+    make time (seconds 1)
+        |> toDay zone
 
 
 split : Int -> TimeWindow -> List TimeWindow

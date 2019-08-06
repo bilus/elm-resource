@@ -114,11 +114,7 @@ init : Flags -> ( Model, Cmd Msg )
 init _ =
     let
         window =
-            -- TimeWindow.make (t (30 * 60 * 1000)) (Duration.hours 2)
-            TimeWindow.make (t 0) (Duration.hours 24)
-                |> Debug.log "before"
-                |> TimeWindow.toDay Time.utc
-                |> Debug.log "after"
+            TimeWindow.makeDay Time.utc (t 0)
     in
     ( { currPage = InputPage
 
