@@ -194,7 +194,9 @@ update msg model =
         Today ->
             let
                 newWindow =
-                    model.sheet.window |> TimeWindow.goToDay Time.utc model.currentTime
+                    model.sheet.window
+                        |> TimeWindow.toDay Time.utc
+                        |> TimeWindow.goToDay Time.utc model.currentTime
             in
             ( model |> setSheetWindow newWindow
             , Cmd.none
