@@ -12,7 +12,7 @@ import Schedule exposing (Reservation(..), ReservationId(..), ResourceId(..), Sc
 import Sheet exposing (Cell(..), Draggable(..), Droppable(..), Sheet)
 import Task exposing (andThen, perform)
 import Theme exposing (Theme)
-import Time exposing (Month(..), Posix)
+import Time exposing (Month(..), Posix, Zone)
 import Time.Extra exposing (Interval(..))
 import TimeWindow exposing (TimeWindow)
 
@@ -32,6 +32,7 @@ type alias Model =
     { sheet : Sheet
     , theme : Theme
     , currentTime : Posix
+    , userZone : Zone
     }
 
 
@@ -39,14 +40,18 @@ type alias Flags =
     ()
 
 
-t : Int -> Posix
-t ms =
-    Time.Extra.partsToPosix Time.utc { year = 2019, month = Aug, day = 6, hour = 10, minute = 0, second = 0, millisecond = 0 }
-        |> Time.Extra.add Millisecond ms Time.utc
+sampleTime : Zone -> Int -> Posix
+sampleTime zone ms =
+    Time.Extra.partsToPosix zone { year = 2019, month = Aug, day = 6, hour = 10, minute = 0, second = 0, millisecond = 0 }
+        |> Time.Extra.add Millisecond ms zone
 
 
-stressTestSchedule : List Schedule
-stressTestSchedule =
+stressTestSchedule : Zone -> List Schedule
+stressTestSchedule zone =
+    let
+        t =
+            sampleTime zone
+    in
     [ newSchedule
         (newResource (ResourceId "id1") "ZS 672AE" 0)
         [ Schedule.newReservation (ReservationId "r1") (t (1000 * 60 * 30)) (hours 4) ]
@@ -81,8 +86,12 @@ stressTestSchedule =
            )
 
 
-sampleSchedule : List Schedule
-sampleSchedule =
+sampleSchedule : Zone -> List Schedule
+sampleSchedule zone =
+    let
+        t =
+            sampleTime zone
+    in
     [ newSchedule
         (newResource (ResourceId "id1") "ZS 672AE" 0)
         [ Schedule.newReservation (ReservationId "r1.1") (t (1000 * 60 * 30)) (hours 4) ]
@@ -110,13 +119,20 @@ sampleSchedule =
 init : Flags -> ( Model, Cmd Msg )
 init _ =
     let
+        zone =
+            Time.utc
+
+        -- TODO: Get it from browser
         window =
-            TimeWindow.makeDay Time.utc (t 0)
+            TimeWindow.makeDay zone (sampleTime zone 0)
+
+        -- TODO: User currentTime
     in
     ( { -- , sheet = Sheet.make 48 window sampleSchedule
-        sheet = Sheet.make window sampleSchedule
+        sheet = Sheet.make window (sampleSchedule zone)
       , theme = Theme.defaultTheme (Duration.minutes 30) window
       , currentTime = Time.millisToPosix 0 -- Cheating a bit.
+      , userZone = zone
       }
     , perform NewTime Time.now
     )
@@ -149,7 +165,7 @@ update msg model =
         ViewDay ->
             let
                 newWindow =
-                    model.sheet.window |> TimeWindow.toDay Time.utc
+                    model.sheet.window |> TimeWindow.toDay model.userZone
             in
             ( model |> setSheetWindow newWindow
             , Cmd.none
@@ -158,7 +174,7 @@ update msg model =
         ViewWeek ->
             let
                 newWindow =
-                    model.sheet.window |> TimeWindow.toWeek Time.utc
+                    model.sheet.window |> TimeWindow.toWeek model.userZone
             in
             ( model |> setSheetWindow newWindow
             , Cmd.none
@@ -167,7 +183,7 @@ update msg model =
         ViewMonth ->
             let
                 newWindow =
-                    model.sheet.window |> TimeWindow.toMonth Time.utc
+                    model.sheet.window |> TimeWindow.toMonth model.userZone
             in
             ( model |> setSheetWindow newWindow
             , Cmd.none
@@ -195,8 +211,8 @@ update msg model =
             let
                 newWindow =
                     model.sheet.window
-                        |> TimeWindow.toDay Time.utc
-                        |> TimeWindow.goToDay Time.utc model.currentTime
+                        |> TimeWindow.toDay model.userZone
+                        |> TimeWindow.goToDay model.userZone model.currentTime
             in
             ( model |> setSheetWindow newWindow
             , Cmd.none
@@ -245,7 +261,7 @@ view model =
                     , btn "Today" Today
                     ]
                 , row [ width fill, height fill ]
-                    [ viewSheet model.sheet model.theme
+                    [ viewSheet model.sheet model.theme model.userZone
                         |> Element.map SheetMsg
                     ]
                 ]
@@ -257,15 +273,15 @@ setSheetWindow : TimeWindow -> Model -> Model
 setSheetWindow newWindow model =
     { model
         | sheet =
-            Sheet.make newWindow sampleSchedule
+            Sheet.make newWindow (sampleSchedule model.userZone)
                 |> Sheet.setNowMarker (Just model.currentTime)
         , theme = Theme.defaultTheme (Duration.minutes 30) newWindow
     }
 
 
-viewSheet : Sheet -> Theme -> Element Sheet.Msg
-viewSheet sheet theme =
-    sheet |> Theme.sheetFrame theme
+viewSheet : Sheet -> Theme -> Zone -> Element Sheet.Msg
+viewSheet sheet theme zone =
+    sheet |> Theme.sheetFrame { zone = zone } theme
 
 
 main : Program Flags Model Msg

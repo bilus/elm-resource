@@ -89,6 +89,11 @@ type alias Theme =
     }
 
 
+type alias Config =
+    { zone : Zone
+    }
+
+
 type alias ColumnStyle =
     { reservedCell :
         { backgroundColor : Color
@@ -222,8 +227,8 @@ getColumnStyle { columns, defaultColumnStyle } paletteIndex =
         |> Maybe.withDefault defaultColumnStyle
 
 
-sheetFrame : Theme -> Sheet -> Element Sheet.Msg
-sheetFrame theme sheet =
+sheetFrame : Config -> Theme -> Sheet -> Element Sheet.Msg
+sheetFrame config theme sheet =
     let
         colSeparator =
             column [ width <| px 1, height fill, Border.solid, Border.widthEach { edges | right = 1 }, Border.color <| rgb 0.9 0.9 0.9 ]
@@ -233,7 +238,7 @@ sheetFrame theme sheet =
             sheet.columns
                 |> List.indexedMap
                     (\i column ->
-                        resourceColumn theme sheet (Sheet.makeColumnRef i) column
+                        resourceColumn config theme sheet (Sheet.makeColumnRef i) column
                     )
                 |> List.intersperse colSeparator
 
@@ -248,7 +253,7 @@ sheetFrame theme sheet =
     row
         [ width shrink -- fit contents
         , height fill
-        , behindContent <| sheetBackground theme sheet
+        , behindContent <| sheetBackground config theme sheet
         , inFront <|
             if DragDrop.isDragging sheet.dragDropState then
                 dragDropGrid theme sheet
@@ -256,7 +261,7 @@ sheetFrame theme sheet =
             else
                 none
         ]
-        (timeColumn theme :: cols ++ [ filler ])
+        (timeColumn config theme :: cols ++ [ filler ])
 
 
 slotWindows : Theme -> List ( TimeWindow, TimeWindow )
@@ -290,8 +295,8 @@ makeTimeWindowBefore w =
     TimeWindow.make prevStart (Duration.milliseconds 1000)
 
 
-sheetBackground : Theme -> Sheet -> Element Sheet.Msg
-sheetBackground theme sheet =
+sheetBackground : Config -> Theme -> Sheet -> Element Sheet.Msg
+sheetBackground { zone } theme sheet =
     let
         guides =
             theme
@@ -306,7 +311,7 @@ sheetBackground theme sheet =
                                             if TimeWindow.includes now crnt then
                                                 let
                                                     offset =
-                                                        Time.Extra.diff Millisecond Time.utc (TimeWindow.getStart crnt) now |> toFloat
+                                                        Time.Extra.diff Millisecond zone (TimeWindow.getStart crnt) now |> toFloat
 
                                                     pixels =
                                                         offset / 1000.0 * theme.defaultCell.pixelsPerSecond |> round
@@ -321,11 +326,11 @@ sheetBackground theme sheet =
                                 sheet.nowMarker
                                     |> Maybe.map
                                         (\now ->
-                                            isSameDay Time.utc now crnt
+                                            isSameDay zone now crnt
                                         )
                                     |> Maybe.withDefault False
                         in
-                        guide theme (isDayBoundary prev crnt) isCurrentDay nowMarker
+                        guide theme (isDayBoundary zone prev crnt) isCurrentDay nowMarker
                     )
     in
     column [ width fill, height fill ] <|
@@ -403,8 +408,8 @@ dragDropGrid theme sheet =
             :: guides
 
 
-resourceColumn : Theme -> Sheet -> Sheet.ColumnRef -> Sheet.Column -> Element Sheet.Msg
-resourceColumn theme sheet colRef { resource, layers } =
+resourceColumn : Config -> Theme -> Sheet -> Sheet.ColumnRef -> Sheet.Column -> Element Sheet.Msg
+resourceColumn config theme sheet colRef { resource, layers } =
     let
         title =
             Schedule.getResourceName resource
@@ -429,7 +434,7 @@ resourceColumn theme sheet colRef { resource, layers } =
                                         selected =
                                             Just cellRef == sheet.selectedCell
                                     in
-                                    anyCell theme columnStyle sheet cellRef cell { selected = selected }
+                                    resourceCell config theme columnStyle sheet cellRef cell { selected = selected }
                                 )
                     )
 
@@ -444,27 +449,27 @@ resourceColumn theme sheet colRef { resource, layers } =
         [ stickyHeader theme titleElems, layersEl ]
 
 
-timeColumn : Theme -> Element Sheet.Msg
-timeColumn theme =
+timeColumn : Config -> Theme -> Element Sheet.Msg
+timeColumn config theme =
     let
         slotRows =
             theme
                 |> slotWindows
-                |> List.map (timeCell theme)
+                |> List.map (timeCell config theme)
     in
     column [ width <| px theme.timeCell.widthPx, height fill ] <|
         headerRow theme [ Background.color <| rgba 1 1 1 1 ] []
             :: slotRows
 
 
-anyCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
-anyCell theme columnStyle sheet cellRef cell state =
+resourceCell : Config -> Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
+resourceCell config theme columnStyle sheet cellRef cell state =
     case cell of
         Sheet.EmptyCell _ ->
             emptyCell theme columnStyle sheet cellRef cell state
 
         Sheet.ReservedCell _ ->
-            reservedCell theme columnStyle sheet cellRef cell state
+            reservedCell config theme columnStyle sheet cellRef cell state
 
 
 stickyHeader : Theme -> List (Element Sheet.Msg) -> Element Sheet.Msg
@@ -501,28 +506,28 @@ isSameDay zone time w =
     TimeWindow.contains wholeDay w
 
 
-isDayBoundary : TimeWindow -> TimeWindow -> Bool
-isDayBoundary w1 w2 =
+isDayBoundary : Zone -> TimeWindow -> TimeWindow -> Bool
+isDayBoundary zone w1 w2 =
     let
         -- TODO: Make zone configurable
         day =
-            Time.toDay Time.utc
+            Time.toDay zone
     in
     (w1 |> TimeWindow.getStart |> day) /= (w2 |> TimeWindow.getStart |> day)
 
 
-timeCell : Theme -> ( TimeWindow, TimeWindow ) -> Element Sheet.Msg
-timeCell theme ( prevWindow, window ) =
+timeCell : Config -> Theme -> ( TimeWindow, TimeWindow ) -> Element Sheet.Msg
+timeCell { zone } theme ( prevWindow, window ) =
     let
         h =
             cellHeight theme window
 
         label =
-            if isDayBoundary prevWindow window then
-                TimeWindow.getStart window |> Util.Time.formatDateTime Time.utc
+            if isDayBoundary zone prevWindow window then
+                TimeWindow.getStart window |> Util.Time.formatDateTime zone
 
             else
-                TimeWindow.getStart window |> Util.Time.formatTime Time.utc
+                TimeWindow.getStart window |> Util.Time.formatTime zone
     in
     row
         [ width fill, height <| px h, moveUp <| toFloat theme.defaultCell.heightPx / 2, paddingEach <| theme.timeCell.padding, Background.color <| rgba 1 1 1 1 ]
@@ -542,8 +547,8 @@ emptyCell theme _ _ cellRef cell _ =
     renderCell theme attrs none <| Sheet.cellWindow cell
 
 
-reservedCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
-reservedCell theme columnStyle sheet cellRef cell { selected } =
+reservedCell : Config -> Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
+reservedCell config theme columnStyle sheet cellRef cell { selected } =
     let
         topHandle =
             cellResizeHandle theme sheet (Sheet.CellStart cellRef)
@@ -562,7 +567,7 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
                 [ Font.color (rgba 0.1 0.1 0.1 0.6), padding 2 ]
             <|
                 paragraph [] <|
-                    [ text <| formatCellLabel theme sheet window ]
+                    [ text <| formatCellLabel config theme sheet window ]
 
         window =
             Sheet.cellWindow cell
@@ -626,8 +631,8 @@ renderOutlier theme columnStyle _ angle =
         []
 
 
-formatCellLabel : Theme -> Sheet -> TimeWindow -> String
-formatCellLabel theme sheet window =
+formatCellLabel : Config -> Theme -> Sheet -> TimeWindow -> String
+formatCellLabel { zone } theme sheet window =
     -- TODO: Make zone configurable
     let
         start =
@@ -639,10 +644,10 @@ formatCellLabel theme sheet window =
     if TimeWindow.contains sheet.window window then
         let
             startTime =
-                start |> Util.Time.formatTime Time.utc
+                start |> Util.Time.formatTime zone
 
             endTime =
-                end |> Util.Time.formatTime Time.utc
+                end |> Util.Time.formatTime zone
 
             isRegular =
                 modBy theme.defaultCell.heightPx (cellHeight theme window) == 0
@@ -654,7 +659,7 @@ formatCellLabel theme sheet window =
             startTime ++ " – " ++ endTime
 
     else
-        start |> Util.Time.formatDateTime Time.utc
+        start |> Util.Time.formatDateTime zone
 
 
 unselectable : List (Attribute Sheet.Msg)
