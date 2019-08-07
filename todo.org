@@ -78,6 +78,10 @@
 * DONE Show the first slot's label
   CLOSED: [2019-08-06 Tue 17:47]
 * TODO Use user's current time zone
+** DONE Make zone parametrizable
+   CLOSED: [2019-08-07 Wed 18:04]
+** TODO Get it from browser
+* TODO Show the current day on startup
 * TODO Better encapsulate the sheet so it's easier to use in Main
 * TODO + - buttons (15 minutes - 30 minutes - 1 hour)
 * TODO No way to resize cells if they get too short :BUG:

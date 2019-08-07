@@ -10,7 +10,7 @@ import Element.Input as Input
 import Process
 import Schedule exposing (Reservation(..), ReservationId(..), ResourceId(..), Schedule, newResource, newSchedule)
 import Sheet exposing (Cell(..), Draggable(..), Droppable(..), Sheet)
-import Task exposing (andThen, perform)
+import Task exposing (Task)
 import Theme exposing (Theme)
 import Time exposing (Month(..), Posix, Zone)
 import Time.Extra exposing (Interval(..))
@@ -19,21 +19,23 @@ import TimeWindow exposing (TimeWindow)
 
 type Msg
     = SheetMsg Sheet.Msg
+    | Initialize ( Posix, Zone )
     | ViewDay
     | ViewWeek
     | ViewMonth
     | PreviousPeriod
     | NextPeriod
     | Today
-    | NewTime Posix
+    | NewTime ( Posix, Zone )
 
 
 type alias Model =
-    { sheet : Sheet
-    , theme : Theme
-    , currentTime : Posix
-    , userZone : Zone
-    }
+    Maybe
+        { sheet : Sheet
+        , theme : Theme
+        , currentTime : Posix
+        , userZone : Zone
+        }
 
 
 type alias Flags =
@@ -118,23 +120,9 @@ sampleSchedule zone =
 
 init : Flags -> ( Model, Cmd Msg )
 init _ =
-    let
-        zone =
-            Time.utc
-
-        -- TODO: Get it from browser
-        window =
-            TimeWindow.makeDay zone (sampleTime zone 0)
-
-        -- TODO: User currentTime
-    in
-    ( { -- , sheet = Sheet.make 48 window sampleSchedule
-        sheet = Sheet.make window (sampleSchedule zone)
-      , theme = Theme.defaultTheme (Duration.minutes 30) window
-      , currentTime = Time.millisToPosix 0 -- Cheating a bit.
-      , userZone = zone
-      }
-    , perform NewTime Time.now
+    ( Nothing
+    , requestTimeAndZone
+        |> Task.perform Initialize
     )
 
 
@@ -144,8 +132,13 @@ init _ =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sheet.subscribe model.sheet
-        |> Sub.map SheetMsg
+    case model of
+        Just { sheet } ->
+            Sheet.subscribe sheet
+                |> Sub.map SheetMsg
+
+        Nothing ->
+            Sub.none
 
 
 
@@ -153,81 +146,119 @@ subscriptions model =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
-    case msg of
-        SheetMsg sheetMsg ->
+update msg maybeModel =
+    case ( maybeModel, msg ) of
+        ( _, Initialize ( time, zone ) ) ->
+            ( let
+                window =
+                    TimeWindow.makeDay zone time
+              in
+              Just
+                { -- , sheet = Sheet.make 48 window sampleSchedule
+                  sheet =
+                    Sheet.make window (sampleSchedule zone)
+                        |> Sheet.setNowMarker (Just time)
+                , theme = Theme.defaultTheme (Duration.minutes 30) window
+                , currentTime = time
+                , userZone = zone
+                }
+            , delayRequestNewTime
+            )
+
+        ( Nothing, _ ) ->
+            ( Nothing, Cmd.none )
+
+        ( Just model, SheetMsg sheetMsg ) ->
             let
                 ( updatedSheet, cmd ) =
                     Sheet.update sheetMsg model.sheet
             in
-            ( { model | sheet = updatedSheet }, Cmd.map SheetMsg cmd )
+            ( Just { model | sheet = updatedSheet }, Cmd.map SheetMsg cmd )
 
-        ViewDay ->
+        ( Just model, ViewDay ) ->
             let
                 newWindow =
                     model.sheet.window |> TimeWindow.toDay model.userZone
             in
-            ( model |> setSheetWindow newWindow
+            ( model |> setSheetWindow newWindow |> Just
             , Cmd.none
             )
 
-        ViewWeek ->
+        ( Just model, ViewWeek ) ->
             let
                 newWindow =
                     model.sheet.window |> TimeWindow.toWeek model.userZone
             in
-            ( model |> setSheetWindow newWindow
+            ( model |> setSheetWindow newWindow |> Just
             , Cmd.none
             )
 
-        ViewMonth ->
+        ( Just model, ViewMonth ) ->
             let
                 newWindow =
                     model.sheet.window |> TimeWindow.toMonth model.userZone
             in
-            ( model |> setSheetWindow newWindow
+            ( model |> setSheetWindow newWindow |> Just
             , Cmd.none
             )
 
-        PreviousPeriod ->
+        ( Just model, PreviousPeriod ) ->
             let
                 newWindow =
                     model.sheet.window |> TimeWindow.goBack (TimeWindow.getDuration model.sheet.window)
             in
-            ( model |> setSheetWindow newWindow
+            ( model |> setSheetWindow newWindow |> Just
             , Cmd.none
             )
 
-        NextPeriod ->
+        ( Just model, NextPeriod ) ->
             let
                 newWindow =
                     model.sheet.window |> TimeWindow.goForward (TimeWindow.getDuration model.sheet.window)
             in
-            ( model |> setSheetWindow newWindow
+            ( model |> setSheetWindow newWindow |> Just
             , Cmd.none
             )
 
-        Today ->
+        ( Just model, Today ) ->
             let
                 newWindow =
                     model.sheet.window
                         |> TimeWindow.toDay model.userZone
                         |> TimeWindow.goToDay model.userZone model.currentTime
             in
-            ( model |> setSheetWindow newWindow
+            ( model |> setSheetWindow newWindow |> Just
             , Cmd.none
             )
 
-        NewTime time ->
-            ( { model
-                | currentTime = time
-                , sheet = model.sheet |> Sheet.setNowMarker (Just time)
-              }
-            , Process.sleep (60.0 * 1000.0)
-                -- Update current time indicator every minute
-                |> Task.andThen (\_ -> Time.now)
-                |> Task.perform NewTime
+        ( Just model, NewTime ( time, zone ) ) ->
+            ( Just
+                { model
+                    | currentTime = time
+                    , userZone = zone
+                    , sheet = model.sheet |> Sheet.setNowMarker (Just time)
+                }
+            , delayRequestNewTime
             )
+
+
+requestTimeAndZone : Task x ( Posix, Zone )
+requestTimeAndZone =
+    Task.map2 (\n h -> ( n, h )) Time.now Time.here
+
+
+delayRequestNewTime : Cmd Msg
+delayRequestNewTime =
+    Process.sleep (60.0 * 1000.0)
+        -- Update current time indicator every minute
+        |> Task.andThen (\_ -> requestTimeAndZone)
+        |> Task.perform NewTime
+
+
+send : msg -> Cmd msg
+send msg =
+    Task.succeed msg
+        |> Task.perform identity
 
 
 
@@ -247,34 +278,40 @@ btn title msg =
 
 
 view : Model -> Browser.Document Msg
-view model =
+view maybeModel =
     { title = "elm-resource"
     , body =
         [ layout [] <|
             column [ width fill, height (px 40) ]
-                [ row [ width shrink, height fill, spacing 10, alignRight, padding 5 ]
-                    [ btn "Day" ViewDay
-                    , btn "Week" ViewWeek
-                    , btn "Month" ViewMonth
-                    , btn "◅" PreviousPeriod
-                    , btn "▻" NextPeriod
-                    , btn "Today" Today
-                    ]
-                , row [ width fill, height fill ]
-                    [ viewSheet model.sheet model.theme model.userZone
-                        |> Element.map SheetMsg
-                    ]
-                ]
+                (case maybeModel of
+                    Just model ->
+                        [ row [ width shrink, height fill, spacing 10, alignRight, padding 5 ]
+                            [ btn "Day" ViewDay
+                            , btn "Week" ViewWeek
+                            , btn "Month" ViewMonth
+                            , btn "◅" PreviousPeriod
+                            , btn "▻" NextPeriod
+                            , btn "Today" Today
+                            ]
+                        , row [ width fill, height fill ]
+                            [ viewSheet model.sheet model.theme model.userZone
+                                |> Element.map SheetMsg
+                            ]
+                        ]
+
+                    Nothing ->
+                        []
+                )
         ]
     }
 
 
-setSheetWindow : TimeWindow -> Model -> Model
-setSheetWindow newWindow model =
-    { model
+setSheetWindow : TimeWindow -> { a | sheet : Sheet, theme : Theme, userZone : Zone, currentTime : Posix } -> { a | sheet : Sheet, theme : Theme, userZone : Zone, currentTime : Posix }
+setSheetWindow newWindow data =
+    { data
         | sheet =
-            Sheet.make newWindow (sampleSchedule model.userZone)
-                |> Sheet.setNowMarker (Just model.currentTime)
+            Sheet.make newWindow (sampleSchedule data.userZone)
+                |> Sheet.setNowMarker (Just data.currentTime)
         , theme = Theme.defaultTheme (Duration.minutes 30) newWindow
     }
 
