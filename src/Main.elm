@@ -49,7 +49,7 @@ stressTestSchedule : List Schedule
 stressTestSchedule =
     [ newSchedule
         (newResource (ResourceId "id1") "ZS 672AE" 0)
-        [ Schedule.newReservation (ReservationId "r1") (t (1000 * 60 * 30)) (hours 4) ]
+        [ Schedule.newReservation (ReservationId "r1") (t (1000 * 60 * 30)) (hours <| 24 * 7) ]
     , newSchedule
         (newResource (ResourceId "id1") "ZS 8127S" 1)
         [ Schedule.newReservation (ReservationId "r2") (t (1000 * 60 * 180)) (hours 1)
@@ -85,7 +85,7 @@ sampleSchedule : List Schedule
 sampleSchedule =
     [ newSchedule
         (newResource (ResourceId "id1") "ZS 672AE" 0)
-        [ Schedule.newReservation (ReservationId "r1.1") (t (1000 * 60 * 30)) (hours 4) ]
+        [ Schedule.newReservation (ReservationId "r1.1") (t (1000 * 60 * 30)) (hours <| 24 * 14) ]
     , newSchedule
         (newResource (ResourceId "id1") "ZS 8127S" 1)
         [ Schedule.newReservation (ReservationId "r2.1") (t (1000 * 60 * 180)) (hours 1)
@@ -111,11 +111,11 @@ init : Flags -> ( Model, Cmd Msg )
 init _ =
     let
         window =
-            TimeWindow.makeDay Time.utc (t 0)
+            TimeWindow.makeMonth Time.utc (t 0)
     in
     ( { -- , sheet = Sheet.make 48 window sampleSchedule
         sheet = Sheet.make window sampleSchedule
-      , theme = Theme.defaultTheme (Duration.minutes 30) window
+      , theme = makeTheme window
       , currentTime = Time.millisToPosix 0 -- Cheating a bit.
       }
     , perform NewTime Time.now
@@ -259,8 +259,17 @@ setSheetWindow newWindow model =
         | sheet =
             Sheet.make newWindow sampleSchedule
                 |> Sheet.setNowMarker (Just model.currentTime)
-        , theme = Theme.defaultTheme (Duration.minutes 30) newWindow
+        , theme = makeTheme newWindow
     }
+
+
+makeTheme : TimeWindow -> Theme
+makeTheme window =
+    let
+        def =
+            Theme.defaultTheme (Duration.days 7) window
+    in
+    { def | showDayBoundaries = False }
 
 
 viewSheet : Sheet -> Theme -> Element Sheet.Msg

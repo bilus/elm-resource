@@ -86,6 +86,7 @@ type alias Theme =
         , widthPx : Int
         , padding : Padding
         }
+    , showDayBoundaries : Bool
     }
 
 
@@ -179,6 +180,7 @@ defaultTheme slotDuration window =
             , textColor = Color.darkBrown |> toColor
             }
         }
+    , showDayBoundaries = True
     }
 
 
@@ -288,6 +290,9 @@ makeTimeWindowBefore w =
 sheetBackground : Theme -> Sheet -> Element Sheet.Msg
 sheetBackground theme sheet =
     let
+        showDayBoundary prev crnt =
+            theme.showDayBoundaries && isDayBoundary prev crnt
+
         guides =
             theme
                 |> slotWindows
@@ -320,7 +325,7 @@ sheetBackground theme sheet =
                                         )
                                     |> Maybe.withDefault False
                         in
-                        guide theme (isDayBoundary prev crnt) isCurrentDay nowMarker
+                        guide theme (showDayBoundary prev crnt) isCurrentDay nowMarker
                     )
     in
     column [ width fill, height fill ] <|
@@ -503,7 +508,8 @@ isDayBoundary w1 w2 =
         day =
             Time.toDay Time.utc
     in
-    (w1 |> TimeWindow.getStart |> day) /= (w2 |> TimeWindow.getStart |> day)
+    (w1 |> TimeWindow.getStart |> day)
+        /= (w2 |> TimeWindow.getStart |> day)
 
 
 timeCell : Theme -> ( TimeWindow, TimeWindow ) -> Element Sheet.Msg

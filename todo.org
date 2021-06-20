@@ -1,3 +1,12 @@
+
+* Alhub
+- [ ] Overlay resource transfer lines.
+- [ ] beginningOfWeek - day
+- [ ] Readonly mode
+- [ ] Way to format time
+- [ ] Does "Reservation" make sense?
+- [ ] Use in Alhub to show employment
+
 * MVP
 ** Client-side
 ** No login
