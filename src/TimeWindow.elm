@@ -1,4 +1,4 @@
-module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, goBack, goForward, goToDay, includes, intersection, isEmpty, make, makeDay, moveEnd, moveStart, overlaps, setDuration, split, substract, toDay, toMonth, toWeek)
+module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, goBack, goForward, goToDay, includes, intersection, isEmpty, make, makeDay, makeMonth, makeWeek, moveEnd, moveStart, overlaps, setDuration, split, splitN, substract, toDay, toMonth, toWeek)
 
 import Duration exposing (Duration, seconds)
 import Time exposing (Posix, Zone)
@@ -23,11 +23,55 @@ makeDay zone time =
         |> toDay zone
 
 
-split : Int -> TimeWindow -> List TimeWindow
-split count (TimeWindow { start, duration }) =
+makeWeek : Zone -> Posix -> TimeWindow
+makeWeek zone time =
+    make time (seconds 1)
+        |> toWeek zone
+
+
+makeMonth : Zone -> Posix -> TimeWindow
+makeMonth zone time =
+    make time (seconds 1)
+        |> toMonth zone
+
+
+splitN : Int -> TimeWindow -> List TimeWindow
+splitN count (TimeWindow { start, duration }) =
     let
         interval =
             Duration.inMilliseconds duration / toFloat count
+    in
+    List.range 0 (count - 1)
+        |> List.map
+            (toFloat
+                >> (*) interval
+                >> offsetTime start
+                >> (\s -> TimeWindow { start = s, duration = Duration.milliseconds interval })
+            )
+
+
+split : Duration -> TimeWindow -> List TimeWindow
+split slotDuration (TimeWindow { start, duration }) =
+    let
+        interval =
+            Duration.inMilliseconds slotDuration
+
+        count =
+            Duration.inSeconds duration
+                / Duration.inSeconds slotDuration
+                |> floor
+
+        _ =
+            Debug.log "interval" interval
+
+        _ =
+            Debug.log "start" start
+
+        _ =
+            Debug.log "0" <| offsetTime start (0.0 * interval)
+
+        _ =
+            Debug.log "1" <| offsetTime start (1.0 * interval)
     in
     List.range 0 (count - 1)
         |> List.map

@@ -20,7 +20,11 @@ offsetTime t d =
 
 suite : Test
 suite =
-    Debug.todo "implement"
+    describe "The Timetable module" <|
+        [ test "foo" <|
+            \_ ->
+                Expect.equal 0 0
+        ]
 
 
 

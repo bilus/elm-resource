@@ -150,15 +150,10 @@ defaultTheme slotDuration window =
         slotDurationInSec =
             slotDuration |> Duration.inSeconds
 
-        slotCount =
-            windowDuration
-                / slotDurationInSec
-                |> floor
-
         pixelsPerSecond =
             toFloat defaultCellHeight / slotDurationInSec
     in
-    { slots = TimeWindow.split slotCount window
+    { slots = TimeWindow.split slotDuration window
     , defaultCell =
         { heightPx = defaultCellHeight
         , widthPx = 200
