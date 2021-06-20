@@ -694,7 +694,7 @@ cellResizeHandle _ sheet draggable =
                     :: (Background.color <| rgb 0.3 0.3 0.3)
                     :: move
                     :: centerX
-                    :: Events.onCustom "click" { stopPropagation = True, preventDefault = True } Sheet.Noop
+                    -- :: Events.onCustom "click" { stopPropagation = True, preventDefault = True } Sheet.Noop
                     :: unselectable
                     ++ draggableAttrs
                 )
