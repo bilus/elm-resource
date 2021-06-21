@@ -84,25 +84,27 @@ stressTestSchedule =
 sampleSchedule : List Schedule
 sampleSchedule =
     [ newSchedule
-        (newResource (ResourceId "id1") "ZS 672AE" 0)
+        (newResource (ResourceId "id1") "Heroify" 0)
         [ Schedule.newReservation (ReservationId "r1.1") (t (1000 * 60 * 30)) (hours <| 24 * 14) ]
     , newSchedule
-        (newResource (ResourceId "id1") "ZS 8127S" 1)
-        [ Schedule.newReservation (ReservationId "r2.1") (t (1000 * 60 * 180)) (hours 1)
-        , Schedule.newReservation (ReservationId "r2.2") (t (1000 * 60 * 60)) (hours 4)
-        , Schedule.newReservation (ReservationId "r2.3") (t (23 * 1000 * 60 * 60 + 30 * 60 * 1000)) (hours 4)
+        (newResource (ResourceId "id2") "DTS" 1)
+        [ Schedule.newReservation (ReservationId "r2.1") (t (1000 * 60 * 180)) (hours <| 24 * 5)
+        , Schedule.newReservation (ReservationId "r2.2") (t (1000 * 60 * 180)) (hours <| 24 * 21)
+        , Schedule.newReservation (ReservationId "r2.3") (t (1000 * 60 * 60)) (hours 4)
+        , Schedule.newReservation (ReservationId "r2.4") (t (23 * 1000 * 60 * 60 + 30 * 60 * 1000)) (hours 4)
         ]
     , newSchedule
-        (newResource (ResourceId "id1") "ZS 1234" 2)
+        (newResource (ResourceId "id3") "Rho" 2)
         [ Schedule.newReservation (ReservationId "r3.1") (t 0) (minutes 65)
         ]
     , newSchedule
-        (newResource (ResourceId "id1") "ZS AAAAA" 3)
+        (newResource (ResourceId "id4") "Roman" 3)
         [ Schedule.newReservation (ReservationId "r4.1") (t (1000 * 60 * 180)) (hours 1)
         , Schedule.newReservation (ReservationId "r4.2") (t (1000 * 60 * 60)) (hours 4)
         , Schedule.newReservation (ReservationId "r4.3") (t (1000 * 60 * 360)) (hours 2)
         , Schedule.newReservation (ReservationId "r4.4") (t (1000 * 60 * 360)) (minutes 2)
         , Schedule.newReservation (ReservationId "r4.5") (t (1000 * 60 * 480)) (minutes 45)
+        , Schedule.newReservation (ReservationId "r4.1") (t (1000 * 60 * 180)) (hours <| 24 * 7)
         ]
     ]
 

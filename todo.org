@@ -1,6 +1,9 @@
 
 * Alhub
-- [ ] Overlay resource transfer lines.
+- [X] Overlay resource transfer lines.
+- [ ] Data structure for holding overlay graphics
+  - pill (col, row) label
+  - arrow (r1, c1) (r2, c2) type
 - [ ] beginningOfWeek - day
 - [ ] Readonly mode
 - [ ] Way to format time

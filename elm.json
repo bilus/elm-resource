@@ -17,6 +17,7 @@
             "elm/virtual-dom": "1.0.2",
             "elm-community/list-extra": "8.2.0",
             "elm-community/maybe-extra": "5.0.0",
+            "elm-community/typed-svg": "7.0.0",
             "ianmackenzie/elm-units": "2.0.2",
             "justinmimbs/time-extra": "1.1.0",
             "krisajenkins/elm-exts": "28.0.0",

@@ -40,6 +40,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font exposing (Font)
+import Html
 import Html.Attributes exposing (style)
 import Schedule
 import Sheet exposing (Sheet)
@@ -48,6 +49,7 @@ import Time.Extra exposing (Interval(..))
 import TimeWindow exposing (TimeWindow)
 import Util.Flip exposing (flip)
 import Util.List
+import Util.Svg as Svg
 import Util.Time
 
 
@@ -93,6 +95,8 @@ type alias Theme =
 type alias ColumnStyle =
     { reservedCell :
         { backgroundColor : Color
+        , borderColor : Color
+        , borderWidth : Int
         , textColor : Color
         }
     }
@@ -115,6 +119,9 @@ dragDropConfig =
 defaultTheme : Duration -> TimeWindow -> Theme
 defaultTheme slotDuration window =
     let
+        borderWidth =
+            1
+
         columns =
             [ Color.darkOrange
             , Color.darkYellow
@@ -135,9 +142,16 @@ defaultTheme slotDuration window =
             , Color.lightPurple
             , Color.lightBrown
             ]
-                |> List.map (setAlpha 0.5)
-                |> List.map toColor
-                |> List.map (\color -> { reservedCell = { backgroundColor = color, textColor = Color.darkBrown |> toColor } })
+                |> List.map
+                    (\color ->
+                        { reservedCell =
+                            { backgroundColor = color |> setAlpha 0.5 |> toColor
+                            , borderColor = color |> setAlpha 0.3 |> toColor
+                            , borderWidth = borderWidth
+                            , textColor = Color.darkBrown |> toColor
+                            }
+                        }
+                    )
                 |> Array.fromList
 
         defaultCellHeight =
@@ -157,7 +171,7 @@ defaultTheme slotDuration window =
     { slots = TimeWindow.split slotDuration window
     , defaultCell =
         { heightPx = defaultCellHeight
-        , widthPx = 200
+        , widthPx = 60
         , pixelsPerSecond = pixelsPerSecond
         }
     , columns = columns
@@ -177,6 +191,8 @@ defaultTheme slotDuration window =
     , defaultColumnStyle =
         { reservedCell =
             { backgroundColor = Color.lightOrange |> toColor
+            , borderColor = Color.darkOrange |> toColor
+            , borderWidth = borderWidth
             , textColor = Color.darkBrown |> toColor
             }
         }
@@ -191,6 +207,11 @@ cellHeight theme window =
         |> Duration.inSeconds
         |> (*) theme.defaultCell.pixelsPerSecond
         |> round
+
+
+cellWidth : Theme -> TimeWindow -> Int
+cellWidth theme _ =
+    theme.defaultCell.widthPx
 
 
 setAlpha : Float -> Color.Color -> Color.Color
@@ -247,11 +268,12 @@ sheetFrame theme sheet =
         , height fill
         , behindContent <| sheetBackground theme sheet
         , inFront <|
-            if DragDrop.isDragging sheet.dragDropState then
-                dragDropGrid theme sheet
+            svgOverlay theme sheet
 
-            else
-                none
+        -- if DragDrop.isDragging sheet.dragDropState then
+        --     dragDropGrid theme sheet
+        -- else
+        --     none
         ]
         (timeColumn theme :: cols ++ [ filler ])
 
@@ -376,6 +398,36 @@ currentTimeIndicator _ offset =
         []
 
 
+svgOverlay : Theme -> Sheet -> Element Sheet.Msg
+svgOverlay theme sheet =
+    let
+        _ =
+            Debug.log "aa" 10
+
+        lines =
+            theme.slots
+                |> List.foldr
+                    (\window ( ls, offsetY ) ->
+                        let
+                            height =
+                                cellHeight theme window
+
+                            line =
+                                Svg.line ( 0, offsetY ) ( 100, offsetY + toFloat height )
+                        in
+                        ( line :: ls, offsetY + toFloat height )
+                    )
+                    ( [], 0 )
+                |> Tuple.first
+
+        svg =
+            Svg.svg 600
+                600
+                lines
+    in
+    svg
+
+
 dragDropGrid : Theme -> Sheet -> Element Sheet.Msg
 dragDropGrid theme sheet =
     let
@@ -433,12 +485,15 @@ resourceColumn theme sheet colRef { resource, layers } =
                                 )
                     )
 
+        layerWidth =
+            floor <| toFloat theme.defaultCell.widthPx / (toFloat <| List.length layers)
+
         layersEl =
-            row [ width fill, height fill, paddingXY 1 0 ] <|
+            row [ width <| px layerWidth, height fill, paddingXY 0 0 ] <|
                 List.map layerEl elementGrid
 
         layerEl els =
-            column [ width fill, height fill ] <| els
+            column [ width <| px layerWidth, height fill ] <| els
     in
     column [ width <| px theme.defaultCell.widthPx, height fill, inFront <| stickyHeader theme titleElems ] <|
         [ stickyHeader theme titleElems, layersEl ]
@@ -554,17 +609,20 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
 
         attrs =
             [ Background.color columnStyle.reservedCell.backgroundColor
-            , padding 2
+
+            -- , padding 2
             , Events.onClick (Sheet.CellClicked cell cellRef)
             ]
 
         contents =
-            el
-                [ Font.color (rgba 0.1 0.1 0.1 0.6), padding 2 ]
-            <|
-                paragraph [] <|
-                    [ text <| formatCellLabel theme sheet window ]
+            none
 
+        -- TODO: I don't know where to put overflowHidden so layers don't get too wide.
+        -- el
+        --     [ width fill, overflowHidden, Font.color (rgba 0.1 0.1 0.1 0.6), padding 2 ]
+        -- <|
+        --     paragraph [ width fill ] <|
+        --         [ text <| formatCellLabel theme sheet window ]
         window =
             Sheet.cellWindow cell
 
@@ -575,47 +633,75 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
     case maybeVisibleWindow of
         Just visibleWindow ->
             let
-                ( topOutlier, bottomOutlier ) =
+                ( topOverflow, bottomOverflow ) =
                     TimeWindow.substract window visibleWindow
 
-                top =
-                    case ( selected, topOutlier ) of
+                ( top, topBorder ) =
+                    case ( selected, topOverflow ) of
                         ( _, Just tow ) ->
-                            [ above <| renderOutlier theme columnStyle tow 0 ]
+                            ( [ above <| renderOverflow theme columnStyle tow 0
+                              ]
+                            , 0
+                            )
 
                         ( True, Nothing ) ->
-                            [ above <| topHandle ]
+                            ( [ above <| topHandle ]
+                            , columnStyle.reservedCell.borderWidth
+                            )
 
                         ( False, Nothing ) ->
-                            []
+                            ( [], columnStyle.reservedCell.borderWidth )
 
-                bottom =
-                    case ( selected, bottomOutlier ) of
+                ( bottom, bottomBorder ) =
+                    case ( selected, bottomOverflow ) of
                         ( _, Just bow ) ->
-                            [ below <| renderOutlier theme columnStyle bow pi ]
+                            ( [ below <| renderOverflow theme columnStyle bow pi ]
+                            , 0
+                            )
 
                         ( True, Nothing ) ->
-                            [ below <| bottomHandle ]
+                            ( [ below <| bottomHandle ]
+                            , columnStyle.reservedCell.borderWidth
+                            )
 
                         ( False, Nothing ) ->
-                            []
+                            ( [], columnStyle.reservedCell.borderWidth )
+
+                border =
+                    [ inFront <|
+                        el
+                            [ width fill
+                            , height fill
+                            , Border.solid
+                            , Border.color columnStyle.reservedCell.borderColor
+                            , Border.widthEach
+                                { bottom = bottomBorder
+                                , top = topBorder
+                                , left = columnStyle.reservedCell.borderWidth
+                                , right = columnStyle.reservedCell.borderWidth
+                                }
+                            ]
+                            none
+                    ]
             in
-            renderCell theme (attrs ++ top ++ bottom) contents <| visibleWindow
+            renderCell theme (attrs ++ top ++ bottom ++ border) contents <| visibleWindow
 
         Nothing ->
             none
 
 
-renderOutlier : Theme -> ColumnStyle -> TimeWindow -> Float -> Element Sheet.Msg
-renderOutlier theme columnStyle _ angle =
+renderOverflow : Theme -> ColumnStyle -> TimeWindow -> Float -> Element Sheet.Msg
+renderOverflow theme columnStyle _ angle =
     let
         noColor =
             rgba 1 1 1 0
     in
     row
-        [ paddingXY 0 1
-        , width fill
-        , height <| px <| theme.defaultCell.heightPx
+        [ width fill
+        , height <| px 10
+        , Border.widthXY columnStyle.reservedCell.borderWidth 0
+        , Border.dotted
+        , Border.color columnStyle.reservedCell.borderColor
         , Background.gradient
             { angle = angle
             , steps =
@@ -703,6 +789,11 @@ cellResizeHandle _ sheet draggable =
                 none
     in
     handle
+
+
+overflowHidden : Element.Attribute msg
+overflowHidden =
+    Element.htmlAttribute <| Html.Attributes.style "overflow" "hidden"
 
 
 renderCell : Theme -> List (Attribute Sheet.Msg) -> Element Sheet.Msg -> TimeWindow -> Element Sheet.Msg
