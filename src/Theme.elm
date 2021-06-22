@@ -1,4 +1,4 @@
-module Theme exposing (Theme, defaultTheme, emptyCell, reservedCell, resourceColumn, sheetFrame, timeCell, timeColumn)
+module Theme exposing (Theme, cellHeight, defaultTheme, emptyCell, reservedCell, resourceColumn, sheetFrame, timeCell, timeColumn)
 
 import Array exposing (Array)
 import Cell exposing (Cell)
@@ -50,7 +50,6 @@ import Time.Extra exposing (Interval(..))
 import TimeWindow exposing (TimeWindow)
 import Util.Flip exposing (flip)
 import Util.List
-import Util.Svg as Svg
 import Util.Time
 
 
@@ -91,6 +90,7 @@ type alias Theme =
         , label : TimeWindow -> TimeWindow -> String
         }
     , showDayBoundaries : Bool
+    , overlay : Maybe (Element Sheet.Msg)
     }
 
 
@@ -200,6 +200,7 @@ defaultTheme slotDuration window =
             }
         }
     , showDayBoundaries = True
+    , overlay = Nothing
     }
 
 
@@ -280,7 +281,7 @@ sheetFrame theme sheet =
         , height fill
         , behindContent <| sheetBackground theme sheet
         , inFront <|
-            svgOverlay theme sheet
+            optionalOverlay theme sheet
 
         -- if DragDrop.isDragging sheet.dragDropState then
         --     dragDropGrid theme sheet
@@ -410,33 +411,14 @@ currentTimeIndicator _ offset =
         []
 
 
-svgOverlay : Theme -> Sheet -> Element Sheet.Msg
-svgOverlay theme sheet =
-    let
-        _ =
-            Debug.log "aa" 10
-
-        lines =
-            theme.slots
-                |> List.foldr
-                    (\window ( ls, offsetY ) ->
-                        let
-                            height =
-                                cellHeight theme window
-
-                            line =
-                                Svg.line ( 0, offsetY ) ( 100, offsetY + toFloat height )
-                        in
-                        ( line :: ls, offsetY + toFloat height )
-                    )
-                    ( [], toFloat theme.header.heightPx )
-                |> Tuple.first
-
-        svg =
-            Svg.svg [ width fill, height fill ]
-                lines
-    in
-    svg
+optionalOverlay : Theme -> Sheet -> Element Sheet.Msg
+optionalOverlay theme sheet =
+    theme.overlay
+        |> Maybe.map
+            (\el ->
+                Element.el [ width fill, height fill ] el
+            )
+        |> Maybe.withDefault Element.none
 
 
 dragDropGrid : Theme -> Sheet -> Element Sheet.Msg
