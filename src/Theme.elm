@@ -69,7 +69,6 @@ type alias Theme =
         , label : TimeWindow -> TimeWindow -> String
         }
     , showDayBoundaries : Bool
-    , overlay : Maybe (Element Sheet.Msg)
     }
 
 
@@ -138,11 +137,6 @@ defaultTheme slotDuration window =
         defaultCellHeight =
             30
 
-        windowDuration =
-            window
-                |> TimeWindow.getDuration
-                |> Duration.inSeconds
-
         slotDurationInSec =
             slotDuration |> Duration.inSeconds
 
@@ -179,7 +173,6 @@ defaultTheme slotDuration window =
             }
         }
     , showDayBoundaries = True
-    , overlay = Nothing
     }
 
 
@@ -259,8 +252,6 @@ sheetFrame theme sheet =
         [ width shrink -- fit contents
         , height fill
         , behindContent <| sheetBackground theme sheet
-        , inFront <|
-            optionalOverlay theme sheet
 
         -- if DragDrop.isDragging sheet.dragDropState then
         --     dragDropGrid theme sheet
@@ -388,16 +379,6 @@ currentTimeIndicator _ offset =
         , Border.color <| rgba 0.8 0.2 0 1
         ]
         []
-
-
-optionalOverlay : Theme -> Sheet -> Element Sheet.Msg
-optionalOverlay theme sheet =
-    theme.overlay
-        |> Maybe.map
-            (\el ->
-                Element.el [ width fill, height fill ] el
-            )
-        |> Maybe.withDefault Element.none
 
 
 dragDropGrid : Theme -> Sheet -> Element Sheet.Msg

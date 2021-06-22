@@ -4,7 +4,7 @@ import Browser
 import Cell exposing (Cell(..))
 import Connection exposing (..)
 import Duration exposing (hours, minutes)
-import Element exposing (Element, alignRight, column, fill, height, layout, padding, paddingXY, px, rgba, row, shrink, spacing, text, width)
+import Element exposing (Element, alignRight, column, fill, height, inFront, layout, padding, paddingXY, px, rgba, row, shrink, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -30,6 +30,7 @@ type Msg
     | NextPeriod
     | Today
     | NewTime Posix
+    | ConnectionClicked
 
 
 type alias ConnectionData =
@@ -252,6 +253,13 @@ update msg model =
                 |> Task.perform NewTime
             )
 
+        ConnectionClicked ->
+            let
+                _ =
+                    Debug.log "clicked" ()
+            in
+            ( model, Cmd.none )
+
 
 
 -- VIEW
@@ -274,6 +282,13 @@ view model =
     let
         theme =
             makeTheme model
+
+        overlay =
+            Overlay.Connections.render model.sheet theme ConnectionClicked model.connections
+
+        sheet =
+            viewSheet model.sheet theme
+                |> Element.map SheetMsg
     in
     { title = "elm-resource"
     , body =
@@ -288,8 +303,8 @@ view model =
                     , btn "Today" Today
                     ]
                 , row [ width fill, height fill ]
-                    [ viewSheet model.sheet theme
-                        |> Element.map SheetMsg
+                    [ Element.el [ width shrink, height shrink, inFront overlay ]
+                        sheet
                     ]
                 ]
         ]
@@ -331,9 +346,13 @@ makeTheme model =
             defaultTheme.timeCell
 
         overlay =
-            Overlay.Connections.render model.sheet theme model.connections
+            Overlay.Connections.render model.sheet theme ConnectionClicked model.connections
     in
-    { theme | overlay = Just overlay }
+    theme
+
+
+
+-- { theme | overlay = Just overlay }
 
 
 timeLabel : Time.Zone -> TimeWindow -> TimeWindow -> String

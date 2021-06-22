@@ -13,6 +13,7 @@ module Util.Svg exposing
 import Color
 import Element exposing (Element)
 import Html.Attributes as HA
+import Html.Events as Events
 import TypedSvg as Svg
 import TypedSvg.Attributes as TA exposing (noFill, points, stroke)
 import TypedSvg.Attributes.InPx exposing (x1, x2, y1, y2)
@@ -50,13 +51,14 @@ polyline pts =
     Svg.polyline [ noFill, points pts ] []
 
 
-polylineWithMarkerEnd : String -> List ( Float, Float ) -> Svg msg
-polylineWithMarkerEnd markerId pts =
+polylineWithMarkerEnd : String -> msg -> List ( Float, Float ) -> Svg msg
+polylineWithMarkerEnd markerId onClick pts =
     Svg.polyline
         [ TA.markerEnd <| "url(#" ++ markerId ++ ")"
         , noFill
         , stroke <| Paint Color.black
         , points pts
+        , Events.onClick onClick
         ]
         []
 
