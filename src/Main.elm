@@ -2,12 +2,14 @@ module Main exposing (main)
 
 import Browser
 import Cell exposing (Cell(..))
+import Connection exposing (..)
 import Duration exposing (hours, minutes)
 import Element exposing (Element, alignRight, column, fill, height, layout, padding, paddingXY, px, rgba, row, shrink, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Overlay.Connections exposing (render)
 import Process
 import Schedule exposing (Reservation(..), ReservationId(..), ResourceId(..), Schedule, newResource, newSchedule)
 import Sheet exposing (Draggable(..), Droppable(..), Sheet)
@@ -29,9 +31,13 @@ type Msg
     | NewTime Posix
 
 
+type alias ConnectionData =
+    ()
+
+
 type alias Model =
     { sheet : Sheet
-    , theme : Theme
+    , connections : List (Connection ConnectionData)
     , currentTime : Posix
     , zone : Time.Zone
     }
@@ -111,6 +117,18 @@ sampleSchedule =
     ]
 
 
+sampleConnections =
+    [ { fromResource = ResourceId "id2"
+      , fromTime = t (1000 * 60 * 60)
+      , toResource = ResourceId "id1"
+      , toTime = t (1000 * 60 * 30)
+      , data = ()
+      , notes = ""
+      , kind = Strong
+      }
+    ]
+
+
 init : Flags -> ( Model, Cmd Msg )
 init _ =
     let
@@ -124,7 +142,7 @@ init _ =
     in
     ( { -- , sheet = Sheet.make 48 window sampleSchedule
         sheet = Sheet.make window sampleSchedule
-      , theme = makeTheme window zone
+      , connections = sampleConnections
       , zone = zone
       , currentTime = Time.millisToPosix 0 -- Cheating a bit.
       }
@@ -242,6 +260,10 @@ btn title msg =
 
 view : Model -> Browser.Document Msg
 view model =
+    let
+        theme =
+            makeTheme model
+    in
     { title = "elm-resource"
     , body =
         [ layout [] <|
@@ -255,7 +277,7 @@ view model =
                     , btn "Today" Today
                     ]
                 , row [ width fill, height fill ]
-                    [ viewSheet model.sheet model.theme
+                    [ viewSheet model.sheet theme
                         |> Element.map SheetMsg
                     ]
                 ]
@@ -269,26 +291,32 @@ setSheetWindow newWindow model =
         | sheet =
             Sheet.make newWindow sampleSchedule
                 |> Sheet.setNowMarker (Just model.currentTime)
-        , theme = makeTheme newWindow model.zone
     }
 
 
-makeTheme : TimeWindow -> Time.Zone -> Theme
-makeTheme window zone =
+makeTheme : Model -> Theme
+makeTheme model =
     let
-        def =
+        window =
+            model.sheet.window
+
+        zone =
+            model.zone
+
+        defaultTheme =
             Theme.defaultTheme (Duration.days 7) window
 
         timeCell =
-            def.timeCell
+            defaultTheme.timeCell
     in
-    { def
+    { defaultTheme
         | showDayBoundaries = False
         , timeCell =
             { timeCell
                 | label = timeLabel zone
                 , widthPx = 50
             }
+        , overlay = Just (Overlay.Connections.render model.connections defaultTheme)
     }
 
 
