@@ -18,7 +18,7 @@ import Theme exposing (Theme)
 import Time exposing (Month(..), Posix)
 import Time.Extra exposing (Interval(..))
 import TimeWindow exposing (TimeWindow)
-import Util.Maybe
+import Util.List
 
 
 type Msg
@@ -121,20 +121,20 @@ sampleSchedule =
 sampleConnections : Sheet -> List (Connection ())
 sampleConnections sheet =
     [ Maybe.map2
-        (\l1 l2 ->
-            { fromLayer = l1
-            , fromTime = t (1000 * 60 * 60)
-            , toLayer = l2
+        (\from to ->
+            { fromCell = from
+            , fromTime = t (1000 * 60 * 180 + 1000 * 60 * 60 * 24 * 7)
+            , toCell = to
             , toTime = t (1000 * 60 * 30)
             , data = ()
             , notes = ""
             , kind = Strong
             }
         )
-        (Sheet.layerByReservationId sheet <| Schedule.ReservationId "r2.3")
-        (Sheet.layerByReservationId sheet <| Schedule.ReservationId "r1.1")
+        (Sheet.findReservedCell sheet <| Schedule.ReservationId "r2.3")
+        (Sheet.findReservedCell sheet <| Schedule.ReservationId "r1.1")
     ]
-        |> Util.Maybe.compact
+        |> Util.List.compact
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -317,18 +317,23 @@ makeTheme model =
         defaultTheme =
             Theme.defaultTheme (Duration.days 7) window
 
+        theme =
+            { defaultTheme
+                | showDayBoundaries = False
+                , timeCell =
+                    { timeCell
+                        | label = timeLabel zone
+                        , widthPx = 200
+                    }
+            }
+
         timeCell =
             defaultTheme.timeCell
+
+        overlay =
+            Overlay.Connections.render model.sheet theme model.connections
     in
-    { defaultTheme
-        | showDayBoundaries = False
-        , timeCell =
-            { timeCell
-                | label = timeLabel zone
-                , widthPx = 50
-            }
-        , overlay = Just (Overlay.Connections.render defaultTheme model.connections)
-    }
+    { theme | overlay = Just overlay }
 
 
 timeLabel : Time.Zone -> TimeWindow -> TimeWindow -> String

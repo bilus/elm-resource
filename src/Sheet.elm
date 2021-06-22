@@ -1,5 +1,5 @@
 module Sheet exposing
-    ( CellRef
+    ( CellRef(..)
     , Column
     , ColumnRef
     , Draggable(..)
@@ -7,7 +7,10 @@ module Sheet exposing
     , Layer
     , Msg(..)
     , Sheet
+    , columnByRef
     , columnByResourceId
+    , findCell
+    , findReservedCell
     , layerByReservationId
     , make
     , makeCellRef
@@ -23,7 +26,6 @@ import DragDrop
 import Duration exposing (Duration)
 import Json.Decode as Json
 import List.Extra
-import Maybe.Extra
 import Schedule exposing (Reservation, ReservationId, Resource, ResourceId, Schedule, getResourceId)
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow)
@@ -55,11 +57,11 @@ type Draggable
     | CellEnd CellRef
 
 
-findResourceCell : ResourceId -> (Cell -> Bool) -> Sheet -> Maybe CellRef
-findResourceCell resourceId pred sheet =
+findReservedCell : Sheet -> ReservationId -> Maybe CellRef
+findReservedCell sheet reservationId =
     sheet.columns
-        |> List.filter (\{ resource } -> getResourceId resource == resourceId)
-        |> findCellRef pred
+        |> findCellRef
+            (\cell -> Cell.reservationId cell == Just reservationId)
 
 
 columnByResourceId : Sheet -> ResourceId -> Maybe Column
@@ -196,6 +198,17 @@ reservationIdToCellRef columns reservationId =
                     |> Maybe.map ((==) reservationId)
                     |> Maybe.withDefault False
             )
+
+
+findCell : Sheet -> CellRef -> Maybe Cell
+findCell sheet cellRef =
+    findByRef cellRef sheet.columns
+
+
+columnByRef : Sheet -> CellRef -> Maybe Column
+columnByRef sheet (CellRef colIndex _ _) =
+    sheet.columns
+        |> List.Extra.getAt colIndex
 
 
 findByRef : CellRef -> List Column -> Maybe Cell

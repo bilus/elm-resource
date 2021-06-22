@@ -1,4 +1,4 @@
-module Util.List exposing (slice, window2)
+module Util.List exposing (compact, slice, window2)
 
 import List exposing (filter, head, map, tail)
 import List.Extra exposing (zip)
@@ -50,3 +50,8 @@ slice xss =
 window2 : List a -> List ( a, a )
 window2 xs =
     zip xs (tail xs |> Maybe.withDefault [])
+
+
+compact : List (Maybe a) -> List a
+compact =
+    Maybe.Extra.values

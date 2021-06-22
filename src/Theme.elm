@@ -24,7 +24,7 @@ import Element.Font as Font exposing (Font)
 import Html
 import Html.Attributes exposing (style)
 import Schedule
-import Sheet exposing (Sheet)
+import Sheet exposing (CellRef(..), Sheet)
 import Time exposing (Posix, Zone)
 import Time.Extra exposing (Interval(..))
 import TimeWindow exposing (TimeWindow)
@@ -202,8 +202,8 @@ cellHeight theme window =
         |> round
 
 
-cellWidth : Theme -> TimeWindow -> Int
-cellWidth theme _ =
+cellWidth : Theme -> Int
+cellWidth theme =
     theme.defaultCell.widthPx
 
 
@@ -458,18 +458,23 @@ resourceColumn theme sheet colRef { resource, layers } =
                                 )
                     )
 
-        layerWidth =
-            floor <| toFloat theme.defaultCell.widthPx / (toFloat <| List.length layers)
+        widthAttr =
+            width <| px <| layerWidth theme <| List.length layers
 
         layersEl =
-            row [ width <| px layerWidth, height fill, paddingXY 0 0 ] <|
+            row [ widthAttr, height fill, paddingXY 0 0 ] <|
                 List.map layerEl elementGrid
 
         layerEl els =
-            column [ width <| px layerWidth, height fill ] <| els
+            column [ widthAttr, height fill ] <| els
     in
     column [ width <| px theme.defaultCell.widthPx, height fill, inFront <| stickyHeader theme titleElems ] <|
         [ stickyHeader theme titleElems, layersEl ]
+
+
+layerWidth : Theme -> Int -> Int
+layerWidth theme numLayers =
+    floor <| toFloat theme.defaultCell.widthPx / (toFloat <| numLayers)
 
 
 timeColumn : Theme -> Element Sheet.Msg
@@ -766,10 +771,50 @@ overflowHidden =
 
 renderCell : Theme -> List (Attribute Sheet.Msg) -> Element Sheet.Msg -> TimeWindow -> Element Sheet.Msg
 renderCell theme attrs elem window =
-    row [ paddingXY 0 1, width fill, height <| px <| cellHeight theme window ]
+    row [ paddingXY 0 0, width fill, height <| px <| cellHeight theme window ]
         [ el ([ width fill, height fill, Font.size 12 ] ++ attrs) elem ]
 
 
-xy : Theme -> Sheet.Layer -> Posix -> ( Float, Float )
-xy theme column time =
-    ( 0.0, 0.0 )
+xy : Sheet -> Theme -> CellRef -> Posix -> Maybe ( Float, Float )
+xy sheet theme cellRef time =
+    Sheet.columnByRef sheet cellRef
+        |> Maybe.map
+            (\{ layers } ->
+                let
+                    (Sheet.CellRef colIndex layerIndex _) =
+                        cellRef
+
+                    offsetX =
+                        toFloat theme.timeCell.widthPx
+
+                    offsetY =
+                        toFloat theme.header.heightPx
+                            |> Debug.log "offsetY"
+
+                    lw =
+                        toFloat <| layerWidth theme (List.length layers)
+
+                    cw =
+                        toFloat <| cellWidth theme
+
+                    x =
+                        offsetX
+                            + (cw * (toFloat colIndex * 0.5))
+                            + (lw * (toFloat layerIndex + 0.5))
+
+                    start =
+                        TimeWindow.getStart sheet.window
+
+                    s =
+                        Duration.from start time
+                            |> Duration.inSeconds
+                            |> Debug.log "s"
+
+                    y =
+                        offsetY
+                            + s
+                            * theme.defaultCell.pixelsPerSecond
+                            |> Debug.log "y"
+                in
+                Debug.log "x,y" <| ( x, y )
+            )

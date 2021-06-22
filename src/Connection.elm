@@ -8,9 +8,9 @@ import Time exposing (Posix)
 
 
 type alias Connection d =
-    { fromLayer : Sheet.Layer
+    { fromCell : Sheet.CellRef
     , fromTime : Posix
-    , toLayer : Sheet.Layer
+    , toCell : Sheet.CellRef
     , toTime : Posix
     , data : d
     , notes : String

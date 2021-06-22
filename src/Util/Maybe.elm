@@ -11,8 +11,3 @@ isJust m =
 
         Nothing ->
             False
-
-
-compact : List (Maybe a) -> List a
-compact =
-    Maybe.Extra.values
