@@ -7,6 +7,7 @@ module Schedule exposing
     , getReservationId
     , getReservations
     , getResource
+    , getResourceId
     , getResourceName
     , getResourcePaletteIndex
     , getWindow
@@ -43,6 +44,11 @@ newResource id name paletteIndex =
 getResourceName : Resource -> String
 getResourceName (Resource { name }) =
     name
+
+
+getResourceId : Resource -> ResourceId
+getResourceId (Resource { id }) =
+    id
 
 
 getResourcePaletteIndex : Resource -> Int

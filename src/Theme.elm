@@ -1,6 +1,7 @@
 module Theme exposing (Theme, defaultTheme, emptyCell, reservedCell, resourceColumn, sheetFrame, timeCell, timeColumn)
 
 import Array exposing (Array)
+import Cell exposing (Cell)
 import Color
 import DragDrop
 import Duration exposing (Duration)
@@ -522,13 +523,13 @@ timeColumn theme =
             :: slotRows
 
 
-anyCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
+anyCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Cell -> CellState s -> Element Sheet.Msg
 anyCell theme columnStyle sheet cellRef cell state =
     case cell of
-        Sheet.EmptyCell _ ->
+        Cell.EmptyCell _ ->
             emptyCell theme columnStyle sheet cellRef cell state
 
-        Sheet.ReservedCell _ ->
+        Cell.ReservedCell _ ->
             reservedCell theme columnStyle sheet cellRef cell state
 
 
@@ -594,16 +595,16 @@ timeCell theme ( prevWindow, window ) =
         ]
 
 
-emptyCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
+emptyCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Cell -> CellState s -> Element Sheet.Msg
 emptyCell theme _ _ cellRef cell _ =
     let
         attrs =
             [ Events.onClick (Sheet.CellClicked cell cellRef) ]
     in
-    renderCell theme attrs none <| Sheet.cellWindow cell
+    renderCell theme attrs none <| Cell.window cell
 
 
-reservedCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Sheet.Cell -> CellState s -> Element Sheet.Msg
+reservedCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Cell -> CellState s -> Element Sheet.Msg
 reservedCell theme columnStyle sheet cellRef cell { selected } =
     let
         topHandle =
@@ -629,7 +630,7 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
         --     paragraph [ width fill ] <|
         --         [ text <| formatCellLabel theme sheet window ]
         window =
-            Sheet.cellWindow cell
+            Cell.window cell
 
         maybeVisibleWindow =
             TimeWindow.intersection sheet.window <|

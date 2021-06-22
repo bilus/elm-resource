@@ -1,11 +1,27 @@
-module Sheet exposing (Cell(..), CellRef, Column, ColumnRef, Draggable(..), Droppable(..), Layer, Msg(..), Sheet, cellWindow, make, makeCellRef, makeColumnRef, setNowMarker, subscribe, update)
+module Sheet exposing
+    ( CellRef
+    , Column
+    , ColumnRef
+    , Draggable(..)
+    , Droppable(..)
+    , Layer
+    , Msg(..)
+    , Sheet
+    , make
+    , makeCellRef
+    , makeColumnRef
+    , setNowMarker
+    , subscribe
+    , update
+    )
 
 import Browser.Events
+import Cell exposing (..)
 import DragDrop
 import Duration exposing (Duration)
 import Json.Decode as Json
 import List.Extra
-import Schedule exposing (Reservation, Resource, Schedule)
+import Schedule exposing (Reservation, Resource, ResourceId, Schedule, getResourceId)
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow)
 import Util.List exposing (slice, window2)
@@ -31,14 +47,16 @@ type alias Layer =
     List Cell
 
 
-type Cell
-    = EmptyCell TimeWindow
-    | ReservedCell Reservation
-
-
 type Draggable
     = CellStart CellRef
     | CellEnd CellRef
+
+
+findResourceCell : ResourceId -> (Cell -> Bool) -> Sheet -> Maybe CellRef
+findResourceCell resourceId pred sheet =
+    sheet.columns
+        |> List.filter (\{ resource } -> getResourceId resource == resourceId)
+        |> findCellRef pred
 
 
 mapDraggable : (CellRef -> CellRef) -> Draggable -> Draggable
@@ -137,7 +155,7 @@ cellRefToReservationId : List Column -> CellRef -> Maybe Schedule.ReservationId
 cellRefToReservationId columns cellRef =
     findByRef cellRef columns
         |> Maybe.andThen
-            getReservation
+            reservation
         |> Maybe.map Schedule.getReservationId
 
 
@@ -146,7 +164,7 @@ reservationIdToCellRef columns reservationId =
     columns
         |> findCellRef
             (\cell ->
-                getReservation cell
+                reservation cell
                     |> Maybe.map Schedule.getReservationId
                     |> Maybe.map ((==) reservationId)
                     |> Maybe.withDefault False
@@ -205,16 +223,6 @@ findCellRef pred =
                     |> findCellRefColumn colIndex
         )
         Nothing
-
-
-getReservation : Cell -> Maybe Schedule.Reservation
-getReservation cell =
-    case cell of
-        ReservedCell reservation ->
-            Just reservation
-
-        EmptyCell _ ->
-            Nothing
 
 
 makeColumns : TimeWindow -> List Schedule -> List Column
@@ -389,57 +397,3 @@ makeLayers window reservations =
         |> List.map (List.filter (TimeWindow.overlaps window << Schedule.getWindow))
         -- Make each layer continuous by filling gaps with empty cells
         |> List.map (fillInGaps window << List.map ReservedCell << Schedule.sortReservations)
-
-
-makeEmptyCell : Posix -> Duration -> Cell
-makeEmptyCell start duration =
-    EmptyCell (TimeWindow.make start duration)
-
-
-fillInGaps : TimeWindow -> List Cell -> List Cell
-fillInGaps sheetWindow cells =
-    let
-        startPlaceholder =
-            makeEmptyCell (TimeWindow.getStart sheetWindow) (Duration.seconds 0)
-
-        endPlaceholder =
-            makeEmptyCell (TimeWindow.getEnd sheetWindow) (Duration.seconds 0)
-
-        cells2 =
-            startPlaceholder :: cells ++ [ endPlaceholder ]
-
-        fix ( c1, c2 ) =
-            case gapFiller c1 c2 of
-                Just filler ->
-                    [ filler, c2 ]
-
-                Nothing ->
-                    [ c2 ]
-    in
-    cells2
-        |> window2
-        |> List.concatMap fix
-        |> List.filter (not << TimeWindow.isEmpty << cellWindow)
-
-
-cellWindow : Cell -> TimeWindow
-cellWindow cell =
-    case cell of
-        EmptyCell window ->
-            window
-
-        ReservedCell reservation ->
-            Schedule.getWindow reservation
-
-
-gapFiller : Cell -> Cell -> Maybe Cell
-gapFiller c1 c2 =
-    let
-        w1 =
-            cellWindow c1
-
-        w2 =
-            cellWindow c2
-    in
-    TimeWindow.gap w1 w2
-        |> Maybe.map EmptyCell

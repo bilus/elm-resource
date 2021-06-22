@@ -1,6 +1,7 @@
 module Main exposing (main)
 
 import Browser
+import Cell exposing (Cell(..))
 import Duration exposing (hours, minutes)
 import Element exposing (Element, alignRight, column, fill, height, layout, padding, paddingXY, px, rgba, row, shrink, spacing, text, width)
 import Element.Background as Background
@@ -9,7 +10,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Process
 import Schedule exposing (Reservation(..), ReservationId(..), ResourceId(..), Schedule, newResource, newSchedule)
-import Sheet exposing (Cell(..), Draggable(..), Droppable(..), Sheet)
+import Sheet exposing (Draggable(..), Droppable(..), Sheet)
 import Task exposing (andThen, perform)
 import Theme exposing (Theme)
 import Time exposing (Month(..), Posix)
