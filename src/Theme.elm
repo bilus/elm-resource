@@ -428,7 +428,7 @@ svgOverlay theme sheet =
                         in
                         ( line :: ls, offsetY + toFloat height )
                     )
-                    ( [], 0 )
+                    ( [], toFloat theme.header.heightPx )
                 |> Tuple.first
 
         svg =
