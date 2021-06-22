@@ -432,8 +432,7 @@ svgOverlay theme sheet =
                 |> Tuple.first
 
         svg =
-            Svg.svg 600
-                600
+            Svg.svg [ width fill, height fill ]
                 lines
     in
     svg

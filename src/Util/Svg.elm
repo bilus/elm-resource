@@ -10,11 +10,15 @@ import TypedSvg.Core exposing (Svg)
 import TypedSvg.Types exposing (Paint(..))
 
 
-svg : Int -> Int -> List (Svg msg) -> Element msg
-svg width height elements =
-    Svg.svg [ HA.width width, HA.height height ]
-        elements
-        |> Element.html
+svg : List (Element.Attribute msg) -> List (Svg msg) -> Element msg
+svg attrs elements =
+    let
+        svgEl =
+            Svg.svg [ HA.style "width" "100%", HA.style "height" "100%" ]
+                elements
+                |> Element.html
+    in
+    Element.el attrs svgEl
 
 
 line : ( Float, Float ) -> ( Float, Float ) -> Svg msg
