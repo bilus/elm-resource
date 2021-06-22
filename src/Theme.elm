@@ -21,7 +21,6 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font exposing (Font)
-import Html
 import Html.Attributes exposing (style)
 import Schedule
 import Sheet exposing (CellRef(..), Sheet)
@@ -384,9 +383,9 @@ currentTimeIndicator _ offset =
         [ width fill
         , height fill
         , moveDown <| toFloat offset
-        , Border.widthEach { edges | top = 2 }
+        , Border.widthEach { edges | top = 1 }
         , Border.solid
-        , Border.color <| rgba 0 0 0 1
+        , Border.color <| rgba 0.8 0.2 0 1
         ]
         []
 

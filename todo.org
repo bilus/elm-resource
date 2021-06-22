@@ -2,13 +2,17 @@
 * Alhub
 - [X] Overlay resource transfer lines.
 - [X] Way to format time
-- [ ] Data structure for holding overlay graphics
-  - pill (col, row) label
-  - arrow (r1, c1) (r2, c2) type
+- [X] Data structure for holding overlay graphics
+- [X] Draw PoC connections
+- [ ] Draw 3 types of connections
 - [ ] beginningOfWeek - day
 - [ ] Readonly mode
-- [ ] Does "Reservation" make sense?
-- [ ] Use in Alhub to show employment
+- [ ] Make the code reusable
+  + [ ] Does "Reservation" make sense?
+- [ ] Use as library in alhub to show employment
+- [ ] Design visualization & data model for projects & transfers
+- [ ] Use fake data client-side
+
 
 * MVP
 ** Client-side

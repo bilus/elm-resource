@@ -13,25 +13,50 @@ render sheet theme connections =
     let
         lines =
             connections
-                |> List.map (renderConnection sheet theme)
-                |> Util.List.compact
+                |> List.concatMap (renderConnection sheet theme)
+
+        defs =
+            Svg.defs [ Svg.arrowHeadMarker "arrow" ]
 
         svg =
             Svg.svg [ width fill, height fill ]
-                lines
+                (defs :: lines)
     in
     svg
 
 
-renderConnection : Sheet -> Theme -> Connection d -> Maybe (Svg msg)
+renderConnection : Sheet -> Theme -> Connection d -> List (Svg msg)
 renderConnection sheet theme connection =
     let
         from =
             Theme.xy sheet theme connection.fromCell connection.fromTime
-                |> Debug.log "** from"
 
         to =
             Theme.xy sheet theme connection.toCell connection.toTime
-                |> Debug.log "** to"
     in
-    Maybe.map2 Svg.line from to
+    Maybe.map2
+        (\( xf, yf ) ( xt, yt ) ->
+            let
+                sign num =
+                    if num < 0 then
+                        -1
+
+                    else
+                        1
+
+                d =
+                    (sign <| xt - xf)
+                        * Basics.min 15 (abs <| xt - xf)
+
+                points =
+                    [ ( xf, yf )
+                    , ( xf + d, yf )
+                    , ( xt - d, yt )
+                    , ( xt, yt )
+                    ]
+            in
+            [ Svg.polylineWithMarkerEnd "arrow" points ]
+        )
+        from
+        to
+        |> Maybe.withDefault []
