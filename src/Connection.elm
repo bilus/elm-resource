@@ -3,13 +3,14 @@ module Connection exposing (Connection, Kind(..))
 -- import Sheet exposing (CellRef, Sheet, cellWindow)
 
 import Schedule exposing (ResourceId)
+import Sheet
 import Time exposing (Posix)
 
 
 type alias Connection d =
-    { fromResource : ResourceId
+    { fromLayer : Sheet.Layer
     , fromTime : Posix
-    , toResource : ResourceId
+    , toLayer : Sheet.Layer
     , toTime : Posix
     , data : d
     , notes : String

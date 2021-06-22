@@ -1,4 +1,6 @@
-module Util.Maybe exposing (isJust)
+module Util.Maybe exposing (..)
+
+import Maybe.Extra
 
 
 isJust : Maybe a -> Bool
@@ -9,3 +11,8 @@ isJust m =
 
         Nothing ->
             False
+
+
+compact : List (Maybe a) -> List a
+compact =
+    Maybe.Extra.values

@@ -7,6 +7,8 @@ module Sheet exposing
     , Layer
     , Msg(..)
     , Sheet
+    , columnByResourceId
+    , layerByReservationId
     , make
     , makeCellRef
     , makeColumnRef
@@ -21,7 +23,8 @@ import DragDrop
 import Duration exposing (Duration)
 import Json.Decode as Json
 import List.Extra
-import Schedule exposing (Reservation, Resource, ResourceId, Schedule, getResourceId)
+import Maybe.Extra
+import Schedule exposing (Reservation, ReservationId, Resource, ResourceId, Schedule, getResourceId)
 import Time exposing (Posix)
 import TimeWindow exposing (TimeWindow)
 import Util.List exposing (slice, window2)
@@ -57,6 +60,30 @@ findResourceCell resourceId pred sheet =
     sheet.columns
         |> List.filter (\{ resource } -> getResourceId resource == resourceId)
         |> findCellRef pred
+
+
+columnByResourceId : Sheet -> ResourceId -> Maybe Column
+columnByResourceId sheet resourceId =
+    sheet.columns
+        |> List.filter (\{ resource } -> Schedule.getResourceId resource == resourceId)
+        |> List.head
+
+
+layerByReservationId : Sheet -> ReservationId -> Maybe Layer
+layerByReservationId sheet reservationId =
+    sheet.columns
+        |> List.filterMap
+            (\{ layers } ->
+                layers
+                    |> List.filter
+                        (\layer ->
+                            layer
+                                |> List.any
+                                    (\cell -> Cell.reservationId cell == Just reservationId)
+                        )
+                    |> List.head
+            )
+        |> List.head
 
 
 mapDraggable : (CellRef -> CellRef) -> Draggable -> Draggable

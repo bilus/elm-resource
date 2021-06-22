@@ -22,6 +22,12 @@ reservation cell =
             Nothing
 
 
+reservationId : Cell -> Maybe Schedule.ReservationId
+reservationId cell =
+    reservation cell
+        |> Maybe.map Schedule.getReservationId
+
+
 makeEmpty : Posix -> Duration -> Cell
 makeEmpty start duration =
     EmptyCell (TimeWindow.make start duration)

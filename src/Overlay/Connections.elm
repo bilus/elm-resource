@@ -1,35 +1,33 @@
-module Overlay.Connections exposing (..)
+module Overlay.Connections exposing (render)
 
 import Connection exposing (..)
 import Element exposing (Element, fill, height, width)
+import Sheet
 import Theme exposing (Theme)
-import Util.Svg as Svg
+import Util.Svg as Svg exposing (Svg)
 
 
-render : List (Connection d) -> Theme -> Element msg
-render connections theme =
+render : Theme -> List (Connection d) -> Element msg
+render theme connections =
     let
-        _ =
-            Debug.log "aa" 10
-
         lines =
-            theme.slots
-                |> List.foldr
-                    (\window ( ls, offsetY ) ->
-                        let
-                            height =
-                                Theme.cellHeight theme window
-
-                            line =
-                                Svg.line ( 0, offsetY ) ( 100, offsetY + toFloat height )
-                        in
-                        ( line :: ls, offsetY + toFloat height )
-                    )
-                    ( [], toFloat theme.header.heightPx )
-                |> Tuple.first
+            connections
+                |> List.map (renderConnection theme)
 
         svg =
             Svg.svg [ width fill, height fill ]
                 lines
     in
     svg
+
+
+renderConnection : Theme -> Connection d -> Svg msg
+renderConnection theme connection =
+    let
+        from =
+            Theme.xy theme connection.fromLayer connection.fromTime
+
+        to =
+            Theme.xy theme connection.toLayer connection.toTime
+    in
+    Svg.line from to

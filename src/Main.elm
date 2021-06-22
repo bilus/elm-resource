@@ -18,6 +18,7 @@ import Theme exposing (Theme)
 import Time exposing (Month(..), Posix)
 import Time.Extra exposing (Interval(..))
 import TimeWindow exposing (TimeWindow)
+import Util.Maybe
 
 
 type Msg
@@ -117,16 +118,23 @@ sampleSchedule =
     ]
 
 
-sampleConnections =
-    [ { fromResource = ResourceId "id2"
-      , fromTime = t (1000 * 60 * 60)
-      , toResource = ResourceId "id1"
-      , toTime = t (1000 * 60 * 30)
-      , data = ()
-      , notes = ""
-      , kind = Strong
-      }
+sampleConnections : Sheet -> List (Connection ())
+sampleConnections sheet =
+    [ Maybe.map2
+        (\l1 l2 ->
+            { fromLayer = l1
+            , fromTime = t (1000 * 60 * 60)
+            , toLayer = l2
+            , toTime = t (1000 * 60 * 30)
+            , data = ()
+            , notes = ""
+            , kind = Strong
+            }
+        )
+        (Sheet.layerByReservationId sheet <| Schedule.ReservationId "r2.3")
+        (Sheet.layerByReservationId sheet <| Schedule.ReservationId "r1.1")
     ]
+        |> Util.Maybe.compact
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -139,10 +147,13 @@ init _ =
 
         window =
             TimeWindow.makeMonth zone (t 0)
+
+        sheet =
+            Sheet.make window sampleSchedule
     in
     ( { -- , sheet = Sheet.make 48 window sampleSchedule
-        sheet = Sheet.make window sampleSchedule
-      , connections = sampleConnections
+        sheet = sheet
+      , connections = sampleConnections sheet
       , zone = zone
       , currentTime = Time.millisToPosix 0 -- Cheating a bit.
       }
@@ -316,7 +327,7 @@ makeTheme model =
                 | label = timeLabel zone
                 , widthPx = 50
             }
-        , overlay = Just (Overlay.Connections.render model.connections defaultTheme)
+        , overlay = Just (Overlay.Connections.render defaultTheme model.connections)
     }
 
 

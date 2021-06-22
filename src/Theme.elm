@@ -1,42 +1,22 @@
-module Theme exposing (Theme, cellHeight, defaultTheme, emptyCell, reservedCell, resourceColumn, sheetFrame, timeCell, timeColumn)
+module Theme exposing
+    ( Theme
+    , cellHeight
+    , defaultTheme
+    , emptyCell
+    , reservedCell
+    , resourceColumn
+    , sheetFrame
+    , timeCell
+    , timeColumn
+    , xy
+    )
 
 import Array exposing (Array)
 import Cell exposing (Cell)
 import Color
 import DragDrop
 import Duration exposing (Duration)
-import Element
-    exposing
-        ( Attribute
-        , Color
-        , Element
-        , above
-        , alignRight
-        , behindContent
-        , below
-        , centerX
-        , centerY
-        , column
-        , el
-        , fill
-        , height
-        , htmlAttribute
-        , inFront
-        , moveDown
-        , moveUp
-        , none
-        , padding
-        , paddingEach
-        , paddingXY
-        , paragraph
-        , px
-        , rgb
-        , rgba
-        , row
-        , shrink
-        , text
-        , width
-        )
+import Element exposing (Attribute, Color, Element, above, alignRight, behindContent, below, centerX, centerY, column, el, fill, height, htmlAttribute, inFront, moveDown, moveUp, none, padding, paddingEach, paddingXY, paragraph, px, rgb, rgba, row, shrink, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
@@ -788,3 +768,8 @@ renderCell : Theme -> List (Attribute Sheet.Msg) -> Element Sheet.Msg -> TimeWin
 renderCell theme attrs elem window =
     row [ paddingXY 0 1, width fill, height <| px <| cellHeight theme window ]
         [ el ([ width fill, height fill, Font.size 12 ] ++ attrs) elem ]
+
+
+xy : Theme -> Sheet.Layer -> Posix -> ( Float, Float )
+xy theme column time =
+    ( 0.0, 0.0 )

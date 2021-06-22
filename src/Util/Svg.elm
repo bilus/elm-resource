@@ -1,4 +1,4 @@
-module Util.Svg exposing (line, svg)
+module Util.Svg exposing (Svg, line, svg)
 
 import Color
 import Element exposing (Element)
@@ -6,8 +6,12 @@ import Html.Attributes as HA
 import TypedSvg as Svg
 import TypedSvg.Attributes exposing (stroke)
 import TypedSvg.Attributes.InPx exposing (x1, x2, y1, y2)
-import TypedSvg.Core exposing (Svg)
+import TypedSvg.Core
 import TypedSvg.Types exposing (Paint(..))
+
+
+type alias Svg msg =
+    TypedSvg.Core.Svg msg
 
 
 svg : List (Element.Attribute msg) -> List (Svg msg) -> Element msg
