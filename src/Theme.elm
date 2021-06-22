@@ -87,6 +87,7 @@ type alias Theme =
         { fontSize : Int
         , widthPx : Int
         , padding : Padding
+        , label : TimeWindow -> TimeWindow -> String
         }
     , showDayBoundaries : Bool
     }
@@ -187,6 +188,7 @@ defaultTheme slotDuration window =
         { fontSize = 14
         , widthPx = 200
         , padding = { edges | right = 5 }
+        , label = defaultTimeLabel
         }
     , defaultColumnStyle =
         { reservedCell =
@@ -198,6 +200,15 @@ defaultTheme slotDuration window =
         }
     , showDayBoundaries = True
     }
+
+
+defaultTimeLabel : TimeWindow -> TimeWindow -> String
+defaultTimeLabel prevWindow window =
+    if isDayBoundary prevWindow window then
+        TimeWindow.getStart window |> Util.Time.formatDateTime Time.utc
+
+    else
+        TimeWindow.getStart window |> Util.Time.formatTime Time.utc
 
 
 cellHeight : Theme -> TimeWindow -> Int
@@ -574,16 +585,11 @@ timeCell theme ( prevWindow, window ) =
             cellHeight theme window
 
         label =
-            if isDayBoundary prevWindow window then
-                TimeWindow.getStart window |> Util.Time.formatDateTime Time.utc
-
-            else
-                TimeWindow.getStart window |> Util.Time.formatTime Time.utc
+            theme.timeCell.label prevWindow window
     in
     row
         [ width fill, height <| px h, moveUp <| toFloat theme.defaultCell.heightPx / 2, paddingEach <| theme.timeCell.padding, Background.color <| rgba 1 1 1 1 ]
     <|
-        -- TODO: Make zone configurable
         [ el [ alignRight, Font.size theme.timeCell.fontSize, centerY ] <|
             text label
         ]

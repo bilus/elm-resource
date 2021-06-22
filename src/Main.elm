@@ -32,6 +32,7 @@ type alias Model =
     { sheet : Sheet
     , theme : Theme
     , currentTime : Posix
+    , zone : Time.Zone
     }
 
 
@@ -112,12 +113,18 @@ sampleSchedule =
 init : Flags -> ( Model, Cmd Msg )
 init _ =
     let
+        -- TODO: Time.here (w/elm-task-parallel)
+        -- TODO: Time.utc is all over Theme
+        zone =
+            Time.utc
+
         window =
-            TimeWindow.makeMonth Time.utc (t 0)
+            TimeWindow.makeMonth zone (t 0)
     in
     ( { -- , sheet = Sheet.make 48 window sampleSchedule
         sheet = Sheet.make window sampleSchedule
-      , theme = makeTheme window
+      , theme = makeTheme window zone
+      , zone = zone
       , currentTime = Time.millisToPosix 0 -- Cheating a bit.
       }
     , perform NewTime Time.now
@@ -261,17 +268,85 @@ setSheetWindow newWindow model =
         | sheet =
             Sheet.make newWindow sampleSchedule
                 |> Sheet.setNowMarker (Just model.currentTime)
-        , theme = makeTheme newWindow
+        , theme = makeTheme newWindow model.zone
     }
 
 
-makeTheme : TimeWindow -> Theme
-makeTheme window =
+makeTheme : TimeWindow -> Time.Zone -> Theme
+makeTheme window zone =
     let
         def =
             Theme.defaultTheme (Duration.days 7) window
+
+        timeCell =
+            def.timeCell
     in
-    { def | showDayBoundaries = False }
+    { def
+        | showDayBoundaries = False
+        , timeCell =
+            { timeCell
+                | label = timeLabel zone
+                , widthPx = 50
+            }
+    }
+
+
+timeLabel : Time.Zone -> TimeWindow -> TimeWindow -> String
+timeLabel zone _ window =
+    let
+        start =
+            TimeWindow.getStart window
+
+        month =
+            String.fromInt <| monthNumber <| Time.toMonth zone start
+
+        day =
+            String.fromInt <| Time.toDay zone start
+
+        paddedDay =
+            String.padLeft 2 '0' day
+    in
+    month ++ "/" ++ paddedDay
+
+
+monthNumber : Time.Month -> Int
+monthNumber month =
+    case month of
+        Jan ->
+            1
+
+        Feb ->
+            2
+
+        Mar ->
+            3
+
+        Apr ->
+            4
+
+        May ->
+            5
+
+        Jun ->
+            6
+
+        Jul ->
+            7
+
+        Aug ->
+            8
+
+        Sep ->
+            9
+
+        Oct ->
+            10
+
+        Nov ->
+            11
+
+        Dec ->
+            12
 
 
 viewSheet : Sheet -> Theme -> Element Sheet.Msg
