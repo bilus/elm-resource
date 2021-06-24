@@ -1,10 +1,15 @@
-module Connection exposing (Connection, Kind(..))
+module Connection exposing (Connection, Kind(..), render)
 
 -- import Sheet exposing (CellRef, Sheet, cellWindow)
 
-import Schedule exposing (ResourceId)
-import Sheet
+import Color
+import Sheet exposing (Sheet)
+import Theme exposing (Theme)
 import Time exposing (Posix)
+import TypedSvg.Attributes as TA
+import TypedSvg.Core exposing (Svg)
+import TypedSvg.Types exposing (Paint(..))
+import Util.Svg as SvgU
 
 
 type alias Connection d =
@@ -24,27 +29,68 @@ type Kind
     | Blocked
 
 
+render : Sheet -> Theme -> String -> Connection d -> List (Svg msg)
+render sheet theme arrowMarkerId connection =
+    let
+        from =
+            Theme.xy sheet theme connection.fromCell connection.fromTime
 
--- ends : Sheet -> Connection d -> Maybe ( CellRef, CellRef )
--- ends sheet connection =
---     let
---         from =
---             cellRef sheet connection.fromResource connection.fromTime
---         to =
---             cellRef sheet connection.toResource connection.toTime
---     in
---     Maybe.map2 (\f t -> ( f, t ))
---         from
---         to
--- cellRef : Sheet -> ResourceId -> Posix -> Maybe CellRef
--- cellRef sheet resourceId t =
---     let
---         pred =
---             \cell ->
---                 let
---                     window =
---                         cellwindow
---                 in
---                 TimeWindow.includes t
---     in
---     Nothing
+        to =
+            Theme.xy sheet theme connection.toCell connection.toTime
+
+        dist =
+            15
+    in
+    Maybe.map2
+        (\( xf, yf ) ( xt, yt ) ->
+            let
+                sign num =
+                    if num < 0 then
+                        -1
+
+                    else
+                        1
+
+                d =
+                    (sign <| xt - xf)
+                        * Basics.min dist (abs <| xt - xf)
+
+                points =
+                    [ ( xf, yf )
+                    , ( xf + d, yf )
+                    , ( xt - d, yt )
+                    , ( xt, yt )
+                    ]
+            in
+            case connection.kind of
+                Strong ->
+                    renderStrong points arrowMarkerId
+
+                Weak ->
+                    renderWeak points arrowMarkerId
+
+                Blocked ->
+                    renderBlocked points arrowMarkerId
+        )
+        from
+        to
+        |> Maybe.withDefault []
+
+
+renderStrong : List ( Float, Float ) -> String -> List (Svg msg)
+renderStrong points arrowMarkerId =
+    [ SvgU.polyline points
+        [ TA.stroke <| Paint Color.black
+        , SvgU.markerEndUrl arrowMarkerId
+        ]
+    ]
+
+
+renderWeak : List ( Float, Float ) -> String -> List (Svg msg)
+renderWeak points arrowMarkerId =
+    [ SvgU.polyline points [ SvgU.markerEndUrl arrowMarkerId ] ]
+
+
+renderBlocked : List ( Float, Float ) -> String -> List (Svg msg)
+renderBlocked points arrowMarkerId =
+    [ SvgU.polyline points [ SvgU.markerEndUrl arrowMarkerId ] ]
