@@ -118,21 +118,37 @@ sampleSchedule =
     ]
 
 
-sampleConnections : Sheet -> List (Connection ())
-sampleConnections sheet =
-    [ Maybe.map2
-        (\from to ->
-            { fromCell = from
-            , fromTime = t (1000 * 60 * 180 + 1000 * 60 * 60 * 24 * 7)
-            , toCell = to
-            , toTime = t (1000 * 60 * 30)
+connection : Sheet -> Connection.Kind -> ( ReservationId, Posix ) -> ( ReservationId, Posix ) -> Maybe (Connection ())
+connection sheet kind ( from, fromTime ) ( to, toTime ) =
+    Maybe.map2
+        (\fromCell toCell ->
+            { fromCell = fromCell
+            , fromTime = fromTime
+            , toCell = toCell
+            , toTime = toTime
             , data = ()
             , notes = ""
-            , kind = Strong
+            , kind = kind
             }
         )
-        (Sheet.findReservedCell sheet <| Schedule.ReservationId "r2.3")
-        (Sheet.findReservedCell sheet <| Schedule.ReservationId "r1.1")
+        (Sheet.findReservedCell sheet <| from)
+        (Sheet.findReservedCell sheet <| to)
+
+
+sampleConnections : Sheet -> List (Connection ())
+sampleConnections sheet =
+    [ connection sheet
+        Connection.Strong
+        ( Schedule.ReservationId "r2.3", t (1000 * 60 * 180 + 1000 * 60 * 60 * 24 * 7) )
+        ( Schedule.ReservationId "r1.1", t (1000 * 60 * 30) )
+    , connection sheet
+        Connection.Blocked
+        ( Schedule.ReservationId "r1.1", t (1000 * 60 * 30) )
+        ( Schedule.ReservationId "r2.3", t (1000 * 60 * 180 + 1000 * 60 * 60 * 24 * 10) )
+    , connection sheet
+        Connection.Weak
+        ( Schedule.ReservationId "r1.1", t (1000 * 60 * 30) )
+        ( Schedule.ReservationId "r3.1", t (1000 * 60 * 180 + 1000 * 60 * 60 * 24 * 3) )
     ]
         |> Util.List.compact
 

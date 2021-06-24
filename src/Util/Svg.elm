@@ -1,5 +1,6 @@
 module Util.Svg exposing
     ( arrowHeadMarker
+    , line
     , marker
     , markerEndUrl
     , polygon
@@ -7,6 +8,7 @@ module Util.Svg exposing
     , svg
     )
 
+import Color
 import Element exposing (Element)
 import Html.Attributes as HA
 import TypedSvg as Svg
@@ -34,7 +36,16 @@ polygon pts attrs =
 
 polyline : List ( Float, Float ) -> List (Attribute msg) -> Svg msg
 polyline pts attrs =
+    let
+        _ =
+            Debug.log "attrs" attrs
+    in
     Svg.polyline (attrs ++ [ noFill, points pts ]) []
+
+
+line : ( Float, Float ) -> ( Float, Float ) -> List (Attribute msg) -> Svg msg
+line ( xs, ys ) ( xe, ye ) attrs =
+    Svg.line (attrs ++ [ x1 xs, y1 ys, x2 xe, y2 ye ]) []
 
 
 markerEndUrl : String -> Attribute msg
@@ -51,7 +62,15 @@ arrowHeadMarker id =
             , ( 0.0, 6.0 )
             ]
     in
-    marker id ( 9.0, 3.0 ) 8.0 6.0 [ polygon pts [] ]
+    marker id
+        ( 8.0, 3.0 )
+        9.0
+        6.0
+        [ polygon pts
+            [ TA.fill ContextFill
+            , TA.stroke ContextStroke
+            ]
+        ]
 
 
 marker : String -> ( Float, Float ) -> Float -> Float -> List (Svg msg) -> Svg msg

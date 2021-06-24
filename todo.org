@@ -5,7 +5,8 @@
 - [X] Data structure for holding overlay graphics
 - [X] Draw PoC connections
 - [X] Get rid of ConnectionClicked
-- [ ] Draw 3 types of connections
+- [X] Draw 3 types of connections
+- [ ] Fix incorrect positioning on DTS
 - [ ] beginningOfWeek - day
 - [ ] Readonly mode
 - [ ] Make the code reusable
