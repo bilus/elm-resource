@@ -51,14 +51,13 @@ polyline pts =
     Svg.polyline [ noFill, points pts ] []
 
 
-polylineWithMarkerEnd : String -> msg -> List ( Float, Float ) -> Svg msg
-polylineWithMarkerEnd markerId onClick pts =
+polylineWithMarkerEnd : String -> List ( Float, Float ) -> Svg msg
+polylineWithMarkerEnd markerId pts =
     Svg.polyline
         [ TA.markerEnd <| "url(#" ++ markerId ++ ")"
         , noFill
         , stroke <| Paint Color.black
         , points pts
-        , Events.onClick onClick
         ]
         []
 

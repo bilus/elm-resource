@@ -30,7 +30,6 @@ type Msg
     | NextPeriod
     | Today
     | NewTime Posix
-    | ConnectionClicked
 
 
 type alias ConnectionData =
@@ -253,13 +252,6 @@ update msg model =
                 |> Task.perform NewTime
             )
 
-        ConnectionClicked ->
-            let
-                _ =
-                    Debug.log "clicked" ()
-            in
-            ( model, Cmd.none )
-
 
 
 -- VIEW
@@ -284,7 +276,7 @@ view model =
             makeTheme model
 
         overlay =
-            Overlay.Connections.render model.sheet theme ConnectionClicked model.connections
+            Overlay.Connections.render model.sheet theme model.connections
 
         sheet =
             viewSheet model.sheet theme
@@ -346,7 +338,7 @@ makeTheme model =
             defaultTheme.timeCell
 
         overlay =
-            Overlay.Connections.render model.sheet theme ConnectionClicked model.connections
+            Overlay.Connections.render model.sheet theme model.connections
     in
     theme
 

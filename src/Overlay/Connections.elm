@@ -1,6 +1,5 @@
 module Overlay.Connections exposing (render)
 
-import Browser.Events exposing (onClick)
 import Connection exposing (..)
 import Element exposing (Element, fill, height, width)
 import Sheet exposing (Sheet)
@@ -9,12 +8,12 @@ import Util.List
 import Util.Svg as Svg exposing (Svg)
 
 
-render : Sheet -> Theme -> msg -> List (Connection d) -> Element msg
-render sheet theme onClick connections =
+render : Sheet -> Theme -> List (Connection d) -> Element msg
+render sheet theme connections =
     let
         lines =
             connections
-                |> List.concatMap (renderConnection sheet theme onClick)
+                |> List.concatMap (renderConnection sheet theme)
 
         defs =
             Svg.defs [ Svg.arrowHeadMarker "arrow" ]
@@ -26,8 +25,8 @@ render sheet theme onClick connections =
     svg
 
 
-renderConnection : Sheet -> Theme -> msg -> Connection d -> List (Svg msg)
-renderConnection sheet theme onClick connection =
+renderConnection : Sheet -> Theme -> Connection d -> List (Svg msg)
+renderConnection sheet theme connection =
     let
         from =
             Theme.xy sheet theme connection.fromCell connection.fromTime
@@ -56,7 +55,7 @@ renderConnection sheet theme onClick connection =
                     , ( xt, yt )
                     ]
             in
-            [ Svg.polylineWithMarkerEnd "arrow" onClick points ]
+            [ Svg.polylineWithMarkerEnd "arrow" points ]
         )
         from
         to

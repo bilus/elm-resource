@@ -4,6 +4,7 @@
 - [X] Way to format time
 - [X] Data structure for holding overlay graphics
 - [X] Draw PoC connections
+- [X] Get rid of ConnectionClicked
 - [ ] Draw 3 types of connections
 - [ ] beginningOfWeek - day
 - [ ] Readonly mode
