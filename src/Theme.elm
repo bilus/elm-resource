@@ -9,6 +9,7 @@ module Theme exposing
     , timeCell
     , timeColumn
     , xy
+    , xyToCellRef
     )
 
 import Array exposing (Array)
@@ -22,6 +23,8 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font exposing (Font)
 import Html.Attributes exposing (style)
+import List.Extra
+import Maybe.Extra
 import Schedule
 import Sheet exposing (CellRef(..), Sheet)
 import Time exposing (Posix, Zone)
@@ -546,7 +549,7 @@ emptyCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Cell -> CellState 
 emptyCell theme _ _ cellRef cell _ =
     let
         attrs =
-            [ Events.onClick (Sheet.CellClicked cell cellRef) ]
+            [ Events.onClick (Sheet.CellClicked cellRef) ]
     in
     renderCell theme attrs none <| Cell.window cell
 
@@ -562,7 +565,7 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
 
         attrs =
             [ Background.color columnStyle.reservedCell.backgroundColor
-            , Events.onClick (Sheet.CellClicked cell cellRef)
+            , Events.onClick (Sheet.CellClicked cellRef)
             ]
 
         contents =
@@ -618,10 +621,23 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
                         ( _, _, Nothing ) ->
                             ( [], columnStyle.reservedCell.borderWidth )
 
+                selectionIndicator =
+                    if selected then
+                        Element.el
+                            [ width fill
+                            , height fill
+                            , Background.color (Color.black |> setAlpha 0.2 |> toColor)
+                            ]
+                            none
+
+                    else
+                        none
+
                 border =
                     [ inFront <|
                         el
-                            [ width fill
+                            [ inFront <| selectionIndicator
+                            , width fill
                             , height fill
                             , Border.solid
                             , Border.color columnStyle.reservedCell.borderColor
@@ -753,15 +769,79 @@ renderCell theme attrs elem window =
         [ el ([ width fill, height fill, Font.size 12 ] ++ attrs) elem ]
 
 
-xy : Sheet -> Theme -> CellRef -> Posix -> Maybe ( Float, Float )
-xy sheet theme cellRef time =
-    Sheet.columnByRef sheet cellRef
+xyToCellRef : Sheet -> Theme -> ( Float, Float ) -> Maybe CellRef
+xyToCellRef sheet theme ( x, y ) =
+    let
+        offsetX =
+            toFloat theme.timeCell.widthPx
+
+        cw =
+            toFloat theme.defaultCell.widthPx
+
+        colIndex =
+            floor <| (x - offsetX) / cw
+    in
+    Sheet.columnByIndex sheet colIndex
         |> Maybe.map
             (\{ layers } ->
                 let
-                    (Sheet.CellRef colIndex layerIndex _) =
-                        cellRef
+                    colRelOffset =
+                        x - offsetX - toFloat colIndex * cw
 
+                    lw =
+                        toFloat <|
+                            layerWidth theme (List.length layers)
+
+                    layerIndex =
+                        floor <| colRelOffset / lw
+                in
+                layers
+                    |> List.Extra.getAt layerIndex
+                    |> Maybe.map (Tuple.pair layerIndex)
+            )
+        |> Maybe.Extra.join
+        |> Maybe.map
+            (\( layerIndex, layer ) ->
+                let
+                    cells =
+                        layer
+
+                    offsetY =
+                        toFloat theme.header.heightPx
+
+                    topOffsets =
+                        cells
+                            |> List.map
+                                (Cell.window
+                                    >> TimeWindow.getDuration
+                                    >> Duration.inSeconds
+                                )
+                            |> List.map (\s -> s * theme.defaultCell.pixelsPerSecond)
+                            |> List.Extra.scanl (+) offsetY
+
+                    indexedTopOffsets =
+                        List.Extra.zip
+                            topOffsets
+                            (List.range 0 (List.length cells - 1))
+                in
+                indexedTopOffsets
+                    |> List.Extra.takeWhile (\( top, _ ) -> top < y)
+                    |> List.Extra.last
+                    |> Maybe.map (\( _, cellIndex ) -> CellRef colIndex layerIndex cellIndex)
+            )
+        |> Maybe.Extra.join
+
+
+xy : Sheet -> Theme -> CellRef -> Posix -> Maybe ( Float, Float )
+xy sheet theme cellRef time =
+    let
+        (Sheet.CellRef colIndex layerIndex _) =
+            cellRef
+    in
+    Sheet.columnByIndex sheet colIndex
+        |> Maybe.map
+            (\{ layers } ->
+                let
                     offsetX =
                         toFloat theme.timeCell.widthPx
 

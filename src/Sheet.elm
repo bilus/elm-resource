@@ -7,7 +7,7 @@ module Sheet exposing
     , Layer
     , Msg(..)
     , Sheet
-    , columnByRef
+    , columnByIndex
     , columnByResourceId
     , findCell
     , findReservedCell
@@ -104,12 +104,13 @@ type Droppable
 
 
 type Msg
-    = CellClicked Cell CellRef
+    = CellClicked CellRef
     | DragDropStarting Draggable
     | DragDropStarted
     | DragDropTargetChanged (Maybe Droppable)
     | DragDropStopped
     | DragDropCompleted Droppable
+    | ClickedOutsideCells
 
 
 type ColumnRef
@@ -206,8 +207,8 @@ findCell sheet cellRef =
     findByRef cellRef sheet.columns
 
 
-columnByRef : Sheet -> CellRef -> Maybe Column
-columnByRef sheet (CellRef colIndex _ _) =
+columnByIndex : Sheet -> Int -> Maybe Column
+columnByIndex sheet colIndex =
     sheet.columns
         |> List.Extra.getAt colIndex
 
@@ -312,8 +313,11 @@ subscribe sheet =
 update : Msg -> Sheet -> ( Sheet, Cmd Msg )
 update msg sheet =
     case ( sheet.readonly, DragDrop.isIdle sheet.dragDropState, msg ) of
-        ( _, True, CellClicked cell cellRef ) ->
-            ( sheet |> onCellClicked cell cellRef, Cmd.none )
+        ( _, True, CellClicked cellRef ) ->
+            ( sheet |> onCellClicked cellRef, Cmd.none )
+
+        ( _, True, ClickedOutsideCells ) ->
+            ( sheet |> onClickedOutsideCells, Cmd.none )
 
         ( False, True, DragDropStarting draggable ) ->
             ( { sheet
@@ -342,8 +346,8 @@ update msg sheet =
             ( sheet, Cmd.none )
 
 
-onCellClicked : Cell -> CellRef -> Sheet -> Sheet
-onCellClicked _ cellRef sheet =
+onCellClicked : CellRef -> Sheet -> Sheet
+onCellClicked cellRef sheet =
     let
         newSelection =
             if sheet.selectedCell == Just cellRef then
@@ -353,6 +357,11 @@ onCellClicked _ cellRef sheet =
                 Just cellRef
     in
     { sheet | selectedCell = newSelection }
+
+
+onClickedOutsideCells : Sheet -> Sheet
+onClickedOutsideCells sheet =
+    { sheet | selectedCell = Nothing }
 
 
 onDragDropTargetChanged : Maybe Droppable -> Sheet -> Sheet

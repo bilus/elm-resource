@@ -294,6 +294,7 @@ view model =
 
         overlay =
             Overlay.Connections.render model.sheet theme model.connections
+                |> Element.map SheetMsg
 
         sheet =
             viewSheet model.sheet theme
@@ -315,8 +316,7 @@ view model =
                     [ Element.el
                         [ width shrink
                         , height shrink
-
-                        --, inFront overlay
+                        , inFront overlay
                         ]
                         sheet
                     ]

@@ -22,10 +22,13 @@
             "justinmimbs/time-extra": "1.1.0",
             "krisajenkins/elm-exts": "28.0.0",
             "mdgriffith/elm-ui": "1.1.8",
+            "mpizenberg/elm-pointer-events": "4.0.2",
             "rtfeldman/elm-iso8601-date-strings": "1.1.3",
             "visotype/elm-dom": "1.1.3"
         },
         "indirect": {
+            "elm/bytes": "1.0.8",
+            "elm/file": "1.0.5",
             "elm/http": "1.0.0",
             "elm/parser": "1.1.0",
             "elm/regex": "1.0.0",
