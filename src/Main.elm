@@ -166,7 +166,7 @@ init _ =
             TimeWindow.makeMonth zone (t 0)
 
         sheet =
-            Sheet.make window sampleSchedule
+            Sheet.make window sampleSchedule True
     in
     ( { -- , sheet = Sheet.make 48 window sampleSchedule
         sheet = sheet
@@ -312,7 +312,12 @@ view model =
                     , btn "Today" Today
                     ]
                 , row [ width fill, height fill ]
-                    [ Element.el [ width shrink, height shrink, inFront overlay ]
+                    [ Element.el
+                        [ width shrink
+                        , height shrink
+
+                        --, inFront overlay
+                        ]
                         sheet
                     ]
                 ]
@@ -324,7 +329,7 @@ setSheetWindow : TimeWindow -> Model -> Model
 setSheetWindow newWindow model =
     { model
         | sheet =
-            Sheet.make newWindow sampleSchedule
+            Sheet.make newWindow sampleSchedule True
                 |> Sheet.setNowMarker (Just model.currentTime)
     }
 

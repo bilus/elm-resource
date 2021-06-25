@@ -39,6 +39,7 @@ type alias Sheet =
     , dragDropState : DragDrop.State Draggable Droppable
     , selectedCell : Maybe CellRef
     , nowMarker : Maybe Posix
+    , readonly : Bool
     }
 
 
@@ -109,7 +110,6 @@ type Msg
     | DragDropTargetChanged (Maybe Droppable)
     | DragDropStopped
     | DragDropCompleted Droppable
-    | Noop
 
 
 type ColumnRef
@@ -130,13 +130,14 @@ makeCellRef (ColumnRef colIndex) layerIndex cellIndex =
     CellRef colIndex layerIndex cellIndex
 
 
-make : TimeWindow -> List Schedule -> Sheet
-make window schedules =
+make : TimeWindow -> List Schedule -> Bool -> Sheet
+make window schedules readonly =
     { window = window
     , columns = makeColumns window schedules
     , dragDropState = DragDrop.init
     , selectedCell = Nothing
     , nowMarker = Nothing
+    , readonly = readonly
     }
 
 
@@ -310,37 +311,34 @@ subscribe sheet =
 
 update : Msg -> Sheet -> ( Sheet, Cmd Msg )
 update msg sheet =
-    case ( DragDrop.isIdle sheet.dragDropState, msg ) of
-        ( True, CellClicked cell cellRef ) ->
+    case ( sheet.readonly, DragDrop.isIdle sheet.dragDropState, msg ) of
+        ( _, True, CellClicked cell cellRef ) ->
             ( sheet |> onCellClicked cell cellRef, Cmd.none )
 
-        ( True, DragDropStarting draggable ) ->
+        ( False, True, DragDropStarting draggable ) ->
             ( { sheet
                 | dragDropState = sheet.dragDropState |> DragDrop.starting draggable { x = 0, y = 0 }
               }
             , Cmd.none
             )
 
-        ( False, DragDropStarted ) ->
+        ( False, False, DragDropStarted ) ->
             ( { sheet
                 | dragDropState = sheet.dragDropState |> DragDrop.started
               }
             , Cmd.none
             )
 
-        ( False, DragDropTargetChanged droppable ) ->
+        ( False, False, DragDropTargetChanged droppable ) ->
             ( sheet |> onDragDropTargetChanged droppable |> recalc, Cmd.none )
 
-        ( False, DragDropCompleted droppable ) ->
+        ( False, False, DragDropCompleted droppable ) ->
             ( sheet |> onDragDropCompleted droppable, Cmd.none )
 
-        ( False, DragDropStopped ) ->
+        ( False, False, DragDropStopped ) ->
             ( { sheet | dragDropState = sheet.dragDropState |> DragDrop.stopped }, Cmd.none )
 
-        ( _, Noop ) ->
-            ( sheet, Cmd.none )
-
-        ( _, _ ) ->
+        ( _, _, _ ) ->
             ( sheet, Cmd.none )
 
 

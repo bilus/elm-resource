@@ -562,8 +562,6 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
 
         attrs =
             [ Background.color columnStyle.reservedCell.backgroundColor
-
-            -- , padding 2
             , Events.onClick (Sheet.CellClicked cell cellRef)
             ]
 
@@ -590,34 +588,34 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
                     TimeWindow.substract window visibleWindow
 
                 ( top, topBorder ) =
-                    case ( selected, topOverflow ) of
-                        ( _, Just tow ) ->
+                    case ( sheet.readonly, selected, topOverflow ) of
+                        ( _, _, Just tow ) ->
                             ( [ above <| renderOverflow theme columnStyle tow 0
                               ]
                             , 0
                             )
 
-                        ( True, Nothing ) ->
+                        ( False, True, Nothing ) ->
                             ( [ above <| topHandle ]
                             , columnStyle.reservedCell.borderWidth
                             )
 
-                        ( False, Nothing ) ->
+                        ( _, _, Nothing ) ->
                             ( [], columnStyle.reservedCell.borderWidth )
 
                 ( bottom, bottomBorder ) =
-                    case ( selected, bottomOverflow ) of
-                        ( _, Just bow ) ->
+                    case ( sheet.readonly, selected, bottomOverflow ) of
+                        ( _, _, Just bow ) ->
                             ( [ below <| renderOverflow theme columnStyle bow pi ]
                             , 0
                             )
 
-                        ( True, Nothing ) ->
+                        ( False, True, Nothing ) ->
                             ( [ below <| bottomHandle ]
                             , columnStyle.reservedCell.borderWidth
                             )
 
-                        ( False, Nothing ) ->
+                        ( _, _, Nothing ) ->
                             ( [], columnStyle.reservedCell.borderWidth )
 
                 border =
