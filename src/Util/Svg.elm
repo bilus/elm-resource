@@ -36,10 +36,6 @@ polygon pts attrs =
 
 polyline : List ( Float, Float ) -> List (Attribute msg) -> Svg msg
 polyline pts attrs =
-    let
-        _ =
-            Debug.log "attrs" attrs
-    in
     Svg.polyline (attrs ++ [ noFill, points pts ]) []
 
 

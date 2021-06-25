@@ -141,7 +141,8 @@ sampleConnections sheet =
         Connection.Strong
         ( Schedule.ReservationId "r2.3", t (1000 * 60 * 180 + 1000 * 60 * 60 * 24 * 7) )
         ( Schedule.ReservationId "r1.1", t (1000 * 60 * 30) )
-    , connection sheet
+    , connection
+        sheet
         Connection.Blocked
         ( Schedule.ReservationId "r1.1", t (1000 * 60 * 30) )
         ( Schedule.ReservationId "r2.3", t (1000 * 60 * 180 + 1000 * 60 * 60 * 24 * 10) )

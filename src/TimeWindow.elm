@@ -60,18 +60,6 @@ split slotDuration (TimeWindow { start, duration }) =
             Duration.inSeconds duration
                 / Duration.inSeconds slotDuration
                 |> floor
-
-        _ =
-            Debug.log "interval" interval
-
-        _ =
-            Debug.log "start" start
-
-        _ =
-            Debug.log "0" <| offsetTime start (0.0 * interval)
-
-        _ =
-            Debug.log "1" <| offsetTime start (1.0 * interval)
     in
     List.range 0 (count - 1)
         |> List.map

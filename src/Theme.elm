@@ -769,10 +769,10 @@ xy sheet theme cellRef time =
 
                     offsetY =
                         toFloat theme.header.heightPx
-                            |> Debug.log "offsetY"
 
                     lw =
-                        toFloat <| layerWidth theme (List.length layers)
+                        toFloat <|
+                            layerWidth theme (List.length layers)
 
                     cw =
                         toFloat <| cellWidth theme
@@ -788,13 +788,11 @@ xy sheet theme cellRef time =
                     s =
                         Duration.from start time
                             |> Duration.inSeconds
-                            |> Debug.log "s"
 
                     y =
                         offsetY
                             + s
                             * theme.defaultCell.pixelsPerSecond
-                            |> Debug.log "y"
                 in
-                Debug.log "x,y" <| ( x, y )
+                ( x, y )
             )
