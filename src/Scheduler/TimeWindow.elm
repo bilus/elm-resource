@@ -1,4 +1,4 @@
-module TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, goBack, goForward, goToDay, includes, intersection, isEmpty, make, makeDay, makeMonth, makeWeek, moveEnd, moveStart, overlaps, setDuration, split, splitN, substract, toDay, toMonth, toWeek)
+module Scheduler.TimeWindow exposing (TimeWindow, compare, contains, gap, getDuration, getEnd, getStart, goBack, goForward, goToDay, includes, intersection, isEmpty, make, makeDay, makeMonth, makeWeek, moveEnd, moveStart, overlaps, setDuration, split, splitN, substract, toDay, toMonth, toWeek)
 
 import Duration exposing (Duration, seconds)
 import Time exposing (Posix, Zone)

@@ -1,4 +1,4 @@
-module Schedule exposing
+module Scheduler.Schedule exposing
     ( Reservation(..)
     , ReservationId(..)
     , Resource
@@ -24,8 +24,8 @@ module Schedule exposing
 
 import Duration exposing (Duration)
 import List.Extra
+import Scheduler.TimeWindow as TimeWindow exposing (TimeWindow, make)
 import Time exposing (Posix)
-import TimeWindow exposing (TimeWindow, make)
 
 
 type ResourceId

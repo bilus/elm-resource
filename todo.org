@@ -7,10 +7,8 @@
 - [X] Get rid of ConnectionClicked
 - [X] Draw 3 types of connections
 - [X] Fix incorrect positioning on DTS
-- [ ] beginningOfWeek - day
-- [ ] Readonly mode
-- [ ] Make the code reusable
-  + [ ] Does "Reservation" make sense?
+- [X] Readonly mode
+- [X] Make the code reusable
 - [ ] Use as library in alhub to show employment
 - [ ] Design visualization & data model for projects & transfers
 - [ ] Use fake data client-side

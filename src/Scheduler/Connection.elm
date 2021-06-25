@@ -1,12 +1,10 @@
-module Connection exposing (Connection, Kind(..), render)
-
--- import Sheet exposing (CellRef, Sheet, cellWindow)
+module Scheduler.Connection exposing (Connection, Kind(..), render)
 
 import Color exposing (Color)
 import List.Extra
 import Pixels exposing (pixels)
-import Sheet exposing (Sheet)
-import Theme exposing (Theme)
+import Scheduler.Sheet as Sheet exposing (Sheet)
+import Scheduler.Theme as Theme exposing (Theme)
 import Time exposing (Posix)
 import TypedSvg.Attributes as TA
 import TypedSvg.Core exposing (Svg)

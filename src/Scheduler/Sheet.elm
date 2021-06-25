@@ -1,4 +1,4 @@
-module Sheet exposing
+module Scheduler.Sheet exposing
     ( CellRef(..)
     , Column
     , ColumnRef
@@ -21,14 +21,14 @@ module Sheet exposing
     )
 
 import Browser.Events
-import Cell exposing (..)
-import DragDrop
 import Duration exposing (Duration)
 import Json.Decode as Json
 import List.Extra
-import Schedule exposing (Reservation, ReservationId, Resource, ResourceId, Schedule, getResourceId)
+import Scheduler.Cell as Cell exposing (..)
+import Scheduler.Schedule as Schedule exposing (Reservation, ReservationId, Resource, ResourceId, Schedule, getResourceId)
+import Scheduler.TimeWindow as TimeWindow exposing (TimeWindow)
 import Time exposing (Posix)
-import TimeWindow exposing (TimeWindow)
+import Util.DragDrop as DragDrop
 import Util.List exposing (slice, window2)
 import Util.Maybe exposing (isJust)
 

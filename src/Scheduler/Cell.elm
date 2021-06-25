@@ -1,9 +1,9 @@
-module Cell exposing (..)
+module Scheduler.Cell exposing (..)
 
 import Duration exposing (Duration)
-import Schedule exposing (Reservation)
+import Scheduler.Schedule as Schedule exposing (Reservation)
+import Scheduler.TimeWindow as TimeWindow exposing (TimeWindow)
 import Time exposing (Posix)
-import TimeWindow exposing (TimeWindow)
 import Util.List
 
 

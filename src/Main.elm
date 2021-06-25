@@ -1,23 +1,23 @@
 module Main exposing (main)
 
 import Browser
-import Cell exposing (Cell(..))
-import Connection exposing (..)
 import Duration exposing (hours, minutes)
 import Element exposing (Element, alignRight, column, fill, height, inFront, layout, padding, paddingXY, px, rgba, row, shrink, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Overlay.Connections exposing (render)
+import Overlay.Connections
 import Process
-import Schedule exposing (Reservation(..), ReservationId(..), ResourceId(..), Schedule, newResource, newSchedule)
-import Sheet exposing (Draggable(..), Droppable(..), Sheet)
-import Task exposing (andThen, perform)
-import Theme exposing (Theme)
+import Scheduler.Cell exposing (Cell(..))
+import Scheduler.Connection as Connection exposing (..)
+import Scheduler.Schedule as Schedule exposing (Reservation(..), ReservationId(..), ResourceId(..), Schedule, newResource, newSchedule)
+import Scheduler.Sheet as Sheet exposing (Draggable(..), Droppable(..), Sheet)
+import Scheduler.Theme as Theme exposing (Theme)
+import Scheduler.TimeWindow as TimeWindow exposing (TimeWindow)
+import Task exposing (perform)
 import Time exposing (Month(..), Posix)
 import Time.Extra exposing (Interval(..))
-import TimeWindow exposing (TimeWindow)
 import Util.List
 
 
@@ -52,42 +52,6 @@ t : Int -> Posix
 t ms =
     Time.Extra.partsToPosix Time.utc { year = 2021, month = Jun, day = 20, hour = 10, minute = 0, second = 0, millisecond = 0 }
         |> Time.Extra.add Millisecond ms Time.utc
-
-
-stressTestSchedule : List Schedule
-stressTestSchedule =
-    [ newSchedule
-        (newResource (ResourceId "id1") "ZS 672AE" 0)
-        [ Schedule.newReservation (ReservationId "r1") (t (1000 * 60 * 30)) (hours <| 24 * 7) ]
-    , newSchedule
-        (newResource (ResourceId "id1") "ZS 8127S" 1)
-        [ Schedule.newReservation (ReservationId "r2") (t (1000 * 60 * 180)) (hours 1)
-        , Schedule.newReservation (ReservationId "r3") (t (1000 * 60 * 60)) (hours 4)
-        ]
-    , newSchedule
-        (newResource (ResourceId "id1") "ZS 1234" 2)
-        (List.range
-            0
-            1000
-            |> List.map (\i -> Schedule.newReservation (ReservationId "r4") (t <| i * 5 * 1000 * 60) (minutes <| toFloat <| 5))
-        )
-    , newSchedule
-        (newResource (ResourceId "id1") "ZS AAAAA" 3)
-        [ Schedule.newReservation (ReservationId "r5") (t (1000 * 60 * 180)) (hours 1)
-        , Schedule.newReservation (ReservationId "r6") (t (1000 * 60 * 60)) (hours 4)
-        , Schedule.newReservation (ReservationId "r7") (t (1000 * 60 * 360)) (hours 2)
-        , Schedule.newReservation (ReservationId "r7") (t (36 * 60 * 60 * 1000 + 1000 * 60 * 360)) (hours 2)
-        ]
-    ]
-        ++ (List.range 0 100
-                |> List.map
-                    (\i ->
-                        newSchedule
-                            (newResource (ResourceId "id1") "ZS AAAAA" (4 + i))
-                            [ Schedule.newReservation (ReservationId <| "rx" ++ String.fromInt i) (t (1000 * 60 * 180)) (hours 1)
-                            ]
-                    )
-           )
 
 
 sampleSchedule : List Schedule
@@ -359,7 +323,7 @@ makeTheme model =
         timeCell =
             defaultTheme.timeCell
 
-        overlay =
+        _ =
             Overlay.Connections.render model.sheet theme model.connections
     in
     theme

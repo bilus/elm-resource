@@ -1,11 +1,11 @@
 module Overlay.Connections exposing (render)
 
 import Color
-import Connection exposing (Connection)
 import Element exposing (Element, fill, height, width)
 import Html.Events.Extra.Mouse exposing (Event, onClick)
-import Sheet exposing (Sheet)
-import Theme exposing (Theme)
+import Scheduler.Connection as Connection exposing (Connection)
+import Scheduler.Sheet as Sheet exposing (Sheet)
+import Scheduler.Theme as Theme exposing (Theme)
 import TypedSvg as Svg
 import Util.Svg as SvgU
 

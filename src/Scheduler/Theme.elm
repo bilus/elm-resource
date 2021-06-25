@@ -1,4 +1,4 @@
-module Theme exposing
+module Scheduler.Theme exposing
     ( Theme
     , cellHeight
     , defaultTheme
@@ -13,9 +13,7 @@ module Theme exposing
     )
 
 import Array exposing (Array)
-import Cell exposing (Cell)
 import Color
-import DragDrop
 import Duration exposing (Duration)
 import Element exposing (Attribute, Color, Element, above, alignRight, behindContent, below, centerX, centerY, column, el, fill, height, htmlAttribute, inFront, moveDown, moveUp, none, padding, paddingEach, paddingXY, paragraph, px, rgb, rgba, row, shrink, text, width)
 import Element.Background as Background
@@ -25,11 +23,13 @@ import Element.Font as Font exposing (Font)
 import Html.Attributes exposing (style)
 import List.Extra
 import Maybe.Extra
-import Schedule
-import Sheet exposing (CellRef(..), Sheet)
+import Scheduler.Cell as Cell exposing (Cell)
+import Scheduler.Schedule as Schedule
+import Scheduler.Sheet as Sheet exposing (CellRef(..), Sheet)
+import Scheduler.TimeWindow as TimeWindow exposing (TimeWindow)
 import Time exposing (Posix, Zone)
 import Time.Extra exposing (Interval(..))
-import TimeWindow exposing (TimeWindow)
+import Util.DragDrop as DragDrop
 import Util.Flip exposing (flip)
 import Util.List
 import Util.Time
