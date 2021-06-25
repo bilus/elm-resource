@@ -779,7 +779,7 @@ xy sheet theme cellRef time =
 
                     x =
                         offsetX
-                            + (cw * (toFloat colIndex * 0.5))
+                            + (cw * toFloat colIndex)
                             + (lw * (toFloat layerIndex + 0.5))
 
                     start =

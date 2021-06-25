@@ -6,7 +6,7 @@
 - [X] Draw PoC connections
 - [X] Get rid of ConnectionClicked
 - [X] Draw 3 types of connections
-- [ ] Fix incorrect positioning on DTS
+- [X] Fix incorrect positioning on DTS
 - [ ] beginningOfWeek - day
 - [ ] Readonly mode
 - [ ] Make the code reusable
