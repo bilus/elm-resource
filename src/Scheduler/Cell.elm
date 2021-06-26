@@ -1,7 +1,7 @@
 module Scheduler.Cell exposing (..)
 
 import Duration exposing (Duration)
-import Scheduler.Schedule as Schedule exposing (Reservation)
+import Scheduler.Schedule as Schedule exposing (Reservation(..))
 import Scheduler.TimeWindow as TimeWindow exposing (TimeWindow)
 import Time exposing (Posix)
 import Util.List
@@ -80,3 +80,13 @@ gapFiller c1 c2 =
     in
     TimeWindow.gap w1 w2
         |> Maybe.map EmptyCell
+
+
+getPaletteIndex : Cell -> Maybe Int
+getPaletteIndex cell =
+    case cell of
+        ReservedCell (Reservation { paletteIndex }) ->
+            paletteIndex
+
+        EmptyCell _ ->
+            Nothing

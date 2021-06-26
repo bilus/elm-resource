@@ -9,8 +9,9 @@
 - [X] Fix incorrect positioning on DTS
 - [X] Readonly mode
 - [X] Make the code reusable
-- [ ] Use as library in alhub to show employment
+- [X] Colors per reservation
 - [ ] Design visualization & data model for projects & transfers
+- [ ] Use as library in alhub to show employment
 - [ ] Use fake data client-side
 
 

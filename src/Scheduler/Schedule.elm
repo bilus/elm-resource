@@ -57,12 +57,12 @@ getResourcePaletteIndex (Resource { paletteIndex }) =
 
 
 type Reservation
-    = Reservation { id : ReservationId, window : TimeWindow }
+    = Reservation { id : ReservationId, window : TimeWindow, paletteIndex : Maybe Int }
 
 
-newReservation : ReservationId -> Posix -> Duration -> Reservation
-newReservation id start duration =
-    Reservation { id = id, window = make start duration }
+newReservation : ReservationId -> Posix -> Duration -> Maybe Int -> Reservation
+newReservation id start duration paletteIndex =
+    Reservation { id = id, window = make start duration, paletteIndex = paletteIndex }
 
 
 isReservationOverlapping : TimeWindow -> Reservation -> Bool
@@ -90,13 +90,13 @@ getWindow (Reservation { window }) =
 
 
 moveReservationStart : Posix -> Reservation -> Reservation
-moveReservationStart newStart (Reservation { id, window }) =
-    Reservation { id = id, window = window |> TimeWindow.moveStart newStart }
+moveReservationStart newStart (Reservation { id, window, paletteIndex }) =
+    Reservation { id = id, window = window |> TimeWindow.moveStart newStart, paletteIndex = paletteIndex }
 
 
 moveReservationEnd : Posix -> Reservation -> Reservation
-moveReservationEnd newEnd (Reservation { id, window }) =
-    Reservation { id = id, window = window |> TimeWindow.moveEnd newEnd }
+moveReservationEnd newEnd (Reservation { id, window, paletteIndex }) =
+    Reservation { id = id, window = window |> TimeWindow.moveEnd newEnd, paletteIndex = paletteIndex }
 
 
 getReservationId : Reservation -> ReservationId

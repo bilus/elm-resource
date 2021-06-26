@@ -55,8 +55,8 @@ type alias Theme =
         , pixelsPerSecond : Float
         }
     , slots : List TimeWindow
-    , columns : Array ColumnStyle
-    , defaultColumnStyle : ColumnStyle
+    , palette : Array CellStyle
+    , defaultCellStyle : CellStyle
     , header :
         { heightPx : Int
         , padding : Int
@@ -75,13 +75,11 @@ type alias Theme =
     }
 
 
-type alias ColumnStyle =
-    { reservedCell :
-        { backgroundColor : Color
-        , borderColor : Color
-        , borderWidth : Int
-        , textColor : Color
-        }
+type alias CellStyle =
+    { backgroundColor : Color
+    , borderColor : Color
+    , borderWidth : Int
+    , textColor : Color
     }
 
 
@@ -105,7 +103,7 @@ defaultTheme slotDuration window =
         borderWidth =
             1
 
-        columns =
+        palette =
             [ Color.darkOrange
             , Color.darkYellow
             , Color.darkGreen
@@ -127,12 +125,10 @@ defaultTheme slotDuration window =
             ]
                 |> List.map
                     (\color ->
-                        { reservedCell =
-                            { backgroundColor = color |> setAlpha 0.5 |> toColor
-                            , borderColor = color |> setAlpha 0.3 |> toColor
-                            , borderWidth = borderWidth
-                            , textColor = Color.darkBrown |> toColor
-                            }
+                        { backgroundColor = color |> setAlpha 0.5 |> toColor
+                        , borderColor = color |> setAlpha 0.3 |> toColor
+                        , borderWidth = borderWidth
+                        , textColor = Color.darkBrown |> toColor
                         }
                     )
                 |> Array.fromList
@@ -152,7 +148,7 @@ defaultTheme slotDuration window =
         , widthPx = 60
         , pixelsPerSecond = pixelsPerSecond
         }
-    , columns = columns
+    , palette = palette
     , header =
         { heightPx = 26
         , padding = 3
@@ -167,13 +163,11 @@ defaultTheme slotDuration window =
         , padding = { edges | right = 5 }
         , label = defaultTimeLabel
         }
-    , defaultColumnStyle =
-        { reservedCell =
-            { backgroundColor = Color.lightOrange |> toColor
-            , borderColor = Color.darkOrange |> toColor
-            , borderWidth = borderWidth
-            , textColor = Color.darkBrown |> toColor
-            }
+    , defaultCellStyle =
+        { backgroundColor = Color.lightOrange |> toColor
+        , borderColor = Color.darkOrange |> toColor
+        , borderWidth = borderWidth
+        , textColor = Color.darkBrown |> toColor
         }
     , showDayBoundaries = True
     }
@@ -220,12 +214,12 @@ toColor color =
     rgba red green blue alpha
 
 
-getColumnStyle : Theme -> Int -> ColumnStyle
-getColumnStyle { columns, defaultColumnStyle } paletteIndex =
+getCellStyle : Theme -> Int -> CellStyle
+getCellStyle { palette, defaultCellStyle } paletteIndex =
     paletteIndex
-        |> modBy (Array.length columns)
-        |> flip Array.get columns
-        |> Maybe.withDefault defaultColumnStyle
+        |> modBy (Array.length palette)
+        |> flip Array.get palette
+        |> Maybe.withDefault defaultCellStyle
 
 
 sheetFrame : Theme -> Sheet -> Element Sheet.Msg
@@ -421,7 +415,7 @@ resourceColumn theme sheet colRef { resource, layers } =
             [ el [ centerX, centerY ] <| text title ]
 
         columnStyle =
-            getColumnStyle theme (Schedule.getResourcePaletteIndex resource)
+            getCellStyle theme (Schedule.getResourcePaletteIndex resource)
 
         elementGrid =
             layers
@@ -436,8 +430,13 @@ resourceColumn theme sheet colRef { resource, layers } =
 
                                         selected =
                                             Just cellRef == sheet.selectedCell
+
+                                        cellStyle =
+                                            Cell.getPaletteIndex cell
+                                                |> Maybe.map (getCellStyle theme)
+                                                |> Maybe.withDefault columnStyle
                                     in
-                                    anyCell theme columnStyle sheet cellRef cell { selected = selected }
+                                    anyCell theme cellStyle sheet cellRef cell { selected = selected }
                                 )
                     )
 
@@ -473,7 +472,7 @@ timeColumn theme =
             :: slotRows
 
 
-anyCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Cell -> CellState s -> Element Sheet.Msg
+anyCell : Theme -> CellStyle -> Sheet -> Sheet.CellRef -> Cell -> CellState s -> Element Sheet.Msg
 anyCell theme columnStyle sheet cellRef cell state =
     case cell of
         Cell.EmptyCell _ ->
@@ -545,7 +544,7 @@ timeCell theme ( prevWindow, window ) =
         ]
 
 
-emptyCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Cell -> CellState s -> Element Sheet.Msg
+emptyCell : Theme -> CellStyle -> Sheet -> Sheet.CellRef -> Cell -> CellState s -> Element Sheet.Msg
 emptyCell theme _ _ cellRef cell _ =
     let
         attrs =
@@ -554,7 +553,7 @@ emptyCell theme _ _ cellRef cell _ =
     renderCell theme attrs none <| Cell.window cell
 
 
-reservedCell : Theme -> ColumnStyle -> Sheet -> Sheet.CellRef -> Cell -> CellState s -> Element Sheet.Msg
+reservedCell : Theme -> CellStyle -> Sheet -> Sheet.CellRef -> Cell -> CellState s -> Element Sheet.Msg
 reservedCell theme columnStyle sheet cellRef cell { selected } =
     let
         topHandle =
@@ -564,7 +563,7 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
             cellResizeHandle theme sheet (Sheet.CellEnd cellRef)
 
         attrs =
-            [ Background.color columnStyle.reservedCell.backgroundColor
+            [ Background.color columnStyle.backgroundColor
             , Events.onClick (Sheet.CellClicked cellRef)
             ]
 
@@ -600,11 +599,11 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
 
                         ( False, True, Nothing ) ->
                             ( [ above <| topHandle ]
-                            , columnStyle.reservedCell.borderWidth
+                            , columnStyle.borderWidth
                             )
 
                         ( _, _, Nothing ) ->
-                            ( [], columnStyle.reservedCell.borderWidth )
+                            ( [], columnStyle.borderWidth )
 
                 ( bottom, bottomBorder ) =
                     case ( sheet.readonly, selected, bottomOverflow ) of
@@ -615,11 +614,11 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
 
                         ( False, True, Nothing ) ->
                             ( [ below <| bottomHandle ]
-                            , columnStyle.reservedCell.borderWidth
+                            , columnStyle.borderWidth
                             )
 
                         ( _, _, Nothing ) ->
-                            ( [], columnStyle.reservedCell.borderWidth )
+                            ( [], columnStyle.borderWidth )
 
                 selectionIndicator =
                     if selected then
@@ -640,12 +639,12 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
                             , width fill
                             , height fill
                             , Border.solid
-                            , Border.color columnStyle.reservedCell.borderColor
+                            , Border.color columnStyle.borderColor
                             , Border.widthEach
                                 { bottom = bottomBorder
                                 , top = topBorder
-                                , left = columnStyle.reservedCell.borderWidth
-                                , right = columnStyle.reservedCell.borderWidth
+                                , left = columnStyle.borderWidth
+                                , right = columnStyle.borderWidth
                                 }
                             ]
                             none
@@ -657,7 +656,7 @@ reservedCell theme columnStyle sheet cellRef cell { selected } =
             none
 
 
-renderOverflow : Theme -> ColumnStyle -> TimeWindow -> Float -> Element Sheet.Msg
+renderOverflow : Theme -> CellStyle -> TimeWindow -> Float -> Element Sheet.Msg
 renderOverflow theme columnStyle _ angle =
     let
         noColor =
@@ -666,13 +665,13 @@ renderOverflow theme columnStyle _ angle =
     row
         [ width fill
         , height <| px 10
-        , Border.widthXY columnStyle.reservedCell.borderWidth 0
+        , Border.widthXY columnStyle.borderWidth 0
         , Border.dotted
-        , Border.color columnStyle.reservedCell.borderColor
+        , Border.color columnStyle.borderColor
         , Background.gradient
             { angle = angle
             , steps =
-                [ columnStyle.reservedCell.backgroundColor
+                [ columnStyle.backgroundColor
                 , noColor
                 ]
             }
